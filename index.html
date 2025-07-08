@@ -3,63 +3,3430 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Intelligent Meeting Scheduler</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap" rel="stylesheet">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            sans: ['Inter', 'sans-serif'],
-          },
-        }
+  <title>Intelligent Meeting Scheduler - Standalone Version</title>
+  <style>
+    :root {
+      /* Monochrome Color Palette */
+      --white: #ffffff;
+      --gray-50: #fafafa;
+      --gray-100: #f5f5f5;
+      --gray-200: #eeeeee;
+      --gray-300: #e0e0e0;
+      --gray-400: #bdbdbd;
+      --gray-500: #9e9e9e;
+      --gray-600: #757575;
+      --gray-700: #616161;
+      --gray-800: #424242;
+      --gray-900: #212121;
+      --black: #000000;
+      
+      /* Accent - using darker grays instead of colors */
+      --primary: var(--gray-900);
+      --primary-hover: var(--black);
+      --primary-light: var(--gray-100);
+      --secondary: var(--gray-600);
+      --secondary-hover: var(--gray-700);
+    }
+    
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+      background-color: var(--gray-50);
+      color: var(--gray-900);
+      line-height: 1.6;
+    }
+    
+    .container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+      width: 100%;
+      max-width: 1200px;
+    }
+    
+    .header-content {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    
+    .title {
+      font-size: 2.5rem;
+      font-weight: 800;
+      color: var(--gray-900);
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    .subtitle {
+      color: var(--gray-600);
+      margin-bottom: 1rem;
+    }
+    
+    .nav-link {
+      color: var(--gray-700);
+      text-decoration: none;
+      cursor: pointer;
+      font-size: 0.9rem;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+    }
+    
+    .nav-link:hover {
+      background-color: var(--gray-100);
+      border-color: var(--gray-400);
+      color: var(--black);
+    }
+    
+    .card {
+      background: var(--white);
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--gray-200);
+      padding: 2rem;
+      width: 100%;
+      max-width: 1200px;
+      margin-bottom: 1.5rem;
+    }
+    
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: var(--gray-900);
+    }
+    
+    .grid {
+      display: grid;
+      gap: 1.5rem;
+    }
+    
+    .grid-2 {
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+    
+    .grid-3 {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    }
+    
+    .grid-4 {
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    }
+    
+    .stat-card {
+      background: var(--gray-100);
+      padding: 1.5rem;
+      border-radius: 8px;
+      border: 2px solid var(--gray-300);
+    }
+    
+    .stat-title {
+      font-weight: 600;
+      color: var(--gray-700);
+      margin-bottom: 0.5rem;
+    }
+    
+    .stat-number {
+      font-size: 1.8rem;
+      font-weight: 800;
+      color: var(--gray-900);
+    }
+    
+    .stat-desc {
+      font-size: 0.875rem;
+      color: var(--gray-700);
+      margin-top: 0.5rem;
+    }
+    
+    .button {
+      background: var(--primary);
+      color: var(--white);
+      border: 2px solid var(--primary);
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-decoration: none;
+      display: inline-block;
+      text-align: center;
+    }
+    
+    .button:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .button-success {
+      background: var(--gray-800);
+      color: var(--white);
+      border-color: var(--gray-800);
+    }
+    
+    .button-success:hover {
+      background: var(--black);
+      border-color: var(--black);
+    }
+    
+    .button-secondary {
+      background: var(--white);
+      color: var(--gray-700);
+      border-color: var(--gray-400);
+    }
+    
+    .button-secondary:hover {
+      background: var(--gray-100);
+      border-color: var(--gray-500);
+    }
+    
+    .button-danger {
+      background: var(--gray-700);
+      color: var(--white);
+      border-color: var(--gray-700);
+    }
+    
+    .button-danger:hover {
+      background: var(--gray-800);
+      border-color: var(--gray-800);
+    }
+    
+    .button-small {
+      padding: 0.5rem 1rem;
+      font-size: 0.875rem;
+    }
+    
+    .buttons {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-top: 1rem;
+    }
+    
+    .input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e5ea;
+      border-radius: 8px;
+      font-size: 1rem;
+      transition: border-color 0.2s;
+      margin-bottom: 1rem;
+    }
+    
+    .input:focus {
+      outline: none;
+      border-color: var(--gray-600);
+      box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .select {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 2px solid #e5e5ea;
+      border-radius: 8px;
+      font-size: 1rem;
+      background: white;
+      cursor: pointer;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow: hidden;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.5rem;
+      border-bottom: 2px solid var(--gray-300);
+      background: var(--gray-100);
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #1d1d1f;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #86868b;
+      cursor: pointer;
+      padding: 0.25rem;
+    }
+    
+    .modal-close:hover {
+      color: #1d1d1f;
+    }
+    
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .text-small {
+      font-size: 0.875rem;
+    }
+    
+    .text-gray {
+      color: var(--gray-600);
+    }
+    
+    .text-success {
+      color: var(--gray-800);
+    }
+    
+    .text-danger {
+      color: var(--gray-700);
+    }
+    
+    .mt-1 { margin-top: 0.5rem; }
+    .mt-2 { margin-top: 1rem; }
+    .mt-4 { margin-top: 2rem; }
+    .mb-1 { margin-bottom: 0.5rem; }
+    .mb-2 { margin-bottom: 1rem; }
+    .mb-4 { margin-bottom: 2rem; }
+    .p-2 { padding: 1rem; }
+    .p-3 { padding: 1.5rem; }
+    
+    .border {
+      border: 1px solid #e5e5ea;
+    }
+    
+    .border-bottom {
+      border-bottom: 1px solid #e5e5ea;
+    }
+    
+    .rounded {
+      border-radius: 8px;
+    }
+    
+    .bg-light {
+      background-color: #f8f9fa;
+    }
+    
+    .bg-success {
+      background-color: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+    }
+    
+    .bg-warning {
+      background-color: #fff3cd;
+      border: 1px solid #ffeaa7;
+      color: #856404;
+    }
+    
+    .bg-info {
+      background-color: #d1ecf1;
+      border: 1px solid #bee5eb;
+      color: #0c5460;
+    }
+    
+    .event-card {
+      border: 2px solid var(--gray-300);
+      background: var(--gray-100);
+      border-radius: 8px;
+      padding: 1rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .event-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    
+    .event-card.selected {
+      border-color: #007aff;
+      background: #e3f2fd;
+    }
+    
+    .event-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+    
+    .event-title {
+      font-weight: 600;
+      color: #1d1d1f;
+    }
+    
+    .event-date {
+      font-size: 0.875rem;
+      color: #86868b;
+      margin-bottom: 0.75rem;
+    }
+    
+    .event-stats {
+      font-size: 0.75rem;
+      color: #86868b;
+    }
+    
+    .event-stat {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 0.25rem;
+    }
+    
+    .participant-list {
+      max-height: 300px;
+      overflow-y: auto;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    
+    .participant-item {
+      display: flex;
+      align-items: center;
+      padding: 0.5rem;
+      border-radius: 6px;
+      transition: background-color 0.2s;
+      cursor: pointer;
+    }
+    
+    .participant-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .participant-checkbox {
+      margin-right: 0.75rem;
+    }
+    
+    .participant-name {
+      font-size: 0.875rem;
+    }
+    
+    .select-all-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 0.5rem;
+    }
+    
+    .select-all-btn {
+      background: var(--gray-200);
+      border: 1px solid var(--gray-400);
+      color: var(--gray-700);
+      padding: 0.25rem 0.5rem;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    .select-all-btn:hover {
+      background: var(--gray-300);
+      border-color: var(--gray-500);
+      color: var(--gray-800);
+    }
+    
+    .schedule-card {
+      background: white;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 0.75rem;
+    }
+    
+    .pagination {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 0.25rem;
+      margin: 1rem 0;
+    }
+    
+    .pagination-btn {
+      background: var(--white);
+      border: 1px solid var(--gray-400);
+      color: var(--gray-700);
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.875rem;
+      transition: all 0.2s;
+      min-width: 2.5rem;
+    }
+    
+    .pagination-btn:hover:not(:disabled) {
+      background: var(--gray-100);
+      border-color: var(--gray-500);
+    }
+    
+    .pagination-btn.active {
+      background: var(--gray-900);
+      color: var(--white);
+      border-color: var(--gray-900);
+    }
+    
+    .pagination-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .schedule-header {
+      font-weight: 600;
+      color: #1d1d1f;
+      margin-bottom: 0.75rem;
+    }
+    
+    .meeting-slot {
+      background: var(--gray-100);
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      padding: 0.5rem;
+      margin-bottom: 0.5rem;
+      font-size: 0.875rem;
+    }
+    
+    .meeting-time {
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+    
+    .meeting-with {
+      color: #86868b;
+      margin-top: 0.25rem;
+    }
+    
+    .footer {
+      margin-top: 3rem;
+      text-align: center;
+      color: #86868b;
+      font-size: 0.875rem;
+    }
+    
+    .admin-view .title {
+      color: #1d1d1f;
+    }
+    
+    .search-input {
+      position: relative;
+    }
+    
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      z-index: 10;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    
+    .suggestion-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+      transition: background-color 0.2s;
+    }
+    
+    .suggestion-item:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+    
+    .meeting-result {
+      border: 1px solid #e5e5ea;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: #f8f9fa;
+    }
+    
+    .meeting-result-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+    
+    .meeting-event {
+      font-weight: 600;
+      color: var(--gray-700);
+      font-size: 1.1rem;
+    }
+    
+    .meeting-date {
+      font-size: 0.9rem;
+      color: #86868b;
+    }
+    
+    .meeting-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      font-size: 0.9rem;
+      color: #86868b;
+    }
+    
+    .detail-label {
+      font-weight: 500;
+      color: #1d1d1f;
+    }
+    
+    @media (max-width: 768px) {
+      .container {
+        padding: 1rem 0.5rem;
+      }
+      
+      .title {
+        font-size: 2rem;
+      }
+      
+      .header-content {
+        flex-direction: column;
+        text-align: center;
+      }
+      
+      .grid-2, .grid-3, .grid-4 {
+        grid-template-columns: 1fr;
+      }
+      
+      .buttons {
+        justify-content: center;
+      }
+      
+      .meeting-details {
+        grid-template-columns: 1fr;
       }
     }
-  </script>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-    }
-    /* Custom scrollbar for better aesthetics */
-    ::-webkit-scrollbar {
-      width: 8px;
-      height: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f1f1f1; /* Light gray track */
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #a0a0a0; /* Medium gray thumb */
-      border-radius: 10px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #707070; /* Darker gray thumb on hover */
-    }
-    .draggable {
-      cursor: grab;
-    }
-    .dragging {
-      opacity: 0.7;
-      cursor: grabbing;
-    }
   </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.1.0/",
-    "react": "https://esm.sh/react@^19.1.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.1.0/"
-  }
-}
-</script>
-<link rel="stylesheet" href="/index.css">
 </head>
-<body class="bg-gray-100">
-  <div id="root"></div>
-  <script type="module" src="/index.tsx"></script>
+<body>
+  <div id="app">
+    <!-- App content will be rendered here -->
+  </div>
+
+  <script>
+    // Application State
+    let currentView = 'search'; // 'search', 'login', 'admin'
+    let isAuthenticated = false;
+    let searchTerm = '';
+    let showSuggestions = false;
+    let showLoginModal = false;
+    let loginPassword = '';
+    let loginError = '';
+    
+    // Password Configuration
+    let adminPassword = localStorage.getItem('adminPassword') || 'admin123';
+    let showPasswordModal = false;
+    let newPassword = '';
+    let confirmPassword = '';
+    let currentPassword = '';
+
+    // Data
+    let masterBuyers = [];
+    let masterSellers = [];
+    let buyerPreferences = {};
+    let events = [];
+    let currentEvent = null;
+
+    // Modal states
+    let showBuyerModal = false;
+    let showSellerModal = false;
+    let showEventModal = false;
+    let showParticipantModal = false;
+    let showPreferenceModal = false;
+
+    // Form states
+    let newBuyerName = '';
+    let newBuyerCountry = '';
+    let newBuyerProfile = '';
+    let newBuyerBlock = 'morning';
+    let newSellerName = '';
+    let newSellerProfile = '';
+    let newEventName = '';
+    let newEventDate = '';
+    
+    // Event session settings
+    let newEventSessionCount = 6;
+    let newEventSessionDuration = 30;
+    let newEventBreakDuration = 5;
+    let newEventMorningStart = '09:30';
+    let newEventAfternoonStart = '13:30';
+    
+    let selectedBuyerForPref = '';
+    let currentPreferences = new Array(10).fill('');
+    
+    // Edit state variables
+    let editingBuyerId = '';
+    let editBuyerName = '';
+    let editBuyerCountry = '';
+    let editBuyerProfile = '';
+    let editBuyerBlock = 'morning';
+    let showEditBuyerModal = false;
+    
+    let editingSellerId = '';
+    let editSellerName = '';
+    let editSellerProfile = '';
+    let showEditSellerModal = false;
+    let showImportModal = false;
+
+    // Pagination variables
+    let buyerPage = 1;
+    let sellerPage = 1;
+    const ITEMS_PER_PAGE = 10;
+
+    // Constants
+    const APP_TITLE = "Intelligent Meeting Scheduler";
+    const NUM_PRIMARY_PREFERRED_SELLERS = 6;
+    const NUM_BACKUP_PREFERRED_SELLERS = 4;
+    const TOTAL_PREFERRED_SELLERS = NUM_PRIMARY_PREFERRED_SELLERS + NUM_BACKUP_PREFERRED_SELLERS;
+
+    const INITIAL_SESSION_SETTINGS = {
+      count: 6,
+      durationMinutes: 30,
+      breakMinutes: 5,
+      morningStartTime: "09:30",
+      afternoonStartTime: "13:30",
+    };
+
+    // Utility functions
+    const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    const countEnglishWords = (text) => {
+      if (!text || !text.trim()) return 0;
+      // Remove extra whitespace and split by spaces, filter out empty strings
+      return text.trim().split(/\s+/).filter(word => word.length > 0).length;
+    };
+
+    const parseCSV = (csvText) => {
+      const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+      if (lines.length === 0) return [];
+      
+      const results = [];
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Simple CSV parsing - handles quoted fields
+        const fields = [];
+        let current = '';
+        let inQuotes = false;
+        
+        for (let j = 0; j < line.length; j++) {
+          const char = line[j];
+          if (char === '"') {
+            if (inQuotes && line[j + 1] === '"') {
+              current += '"';
+              j++; // Skip next quote
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if (char === ',' && !inQuotes) {
+            fields.push(current.trim());
+            current = '';
+          } else {
+            current += char;
+          }
+        }
+        fields.push(current.trim()); // Add last field
+        results.push(fields);
+      }
+      return results;
+    };
+
+    const parseTimeToMinutes = (time) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const calculateSessions = (settings, blockType) => {
+      const sessions = [];
+      const startTimeStr = blockType === 'morning' ? settings.morningStartTime : settings.afternoonStartTime;
+      let currentTime = parseTimeToMinutes(startTimeStr);
+      const prefix = blockType === 'morning' ? 'M' : 'A';
+
+      for (let i = 0; i < settings.count; i++) {
+        const startTimeMinutes = currentTime;
+        const endTimeMinutes = currentTime + settings.durationMinutes;
+
+        const formatTime = (totalMinutes) => {
+          const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+          const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+          return `${hours}:${minutes}`;
+        };
+
+        sessions.push({
+          id: `${prefix}_s${i + 1}`,
+          name: `${prefix}-Session ${i + 1}`,
+          startTime: formatTime(startTimeMinutes),
+          endTime: formatTime(endTimeMinutes),
+          block: blockType,
+        });
+
+        currentTime = endTimeMinutes + settings.breakMinutes;
+      }
+      return sessions;
+    };
+
+    const generateInitialSchedule = (buyers, allSessions) => {
+      const schedule = {};
+      buyers.forEach(buyer => {
+        schedule[buyer.id] = {};
+        allSessions.forEach(session => {
+          schedule[buyer.id][session.id] = null;
+        });
+      });
+      return schedule;
+    };
+
+    const performAutoSchedule = (buyers, allSessions, buyerPreferences, masterSellers) => {
+      const newSchedule = generateInitialSchedule(buyers, allSessions);
+      const sessionOccupancy = {};
+      allSessions.forEach(s => sessionOccupancy[s.id] = new Set());
+
+      const shuffledBuyers = [...buyers].sort(() => Math.random() - 0.5);
+
+      shuffledBuyers.forEach(buyer => {
+        const buyerBlockSessions = allSessions.filter(s => s.block === buyer.sessionBlock);
+        if (buyerBlockSessions.length === 0) {
+          console.warn(`No sessions available for buyer ${buyer.name}'s assigned block (${buyer.sessionBlock}).`);
+          return;
+        }
+        
+        const numSlotsForBuyer = buyerBlockSessions.length;
+        const allPrefsForBuyer = (buyerPreferences[buyer.id] || []).slice(0, TOTAL_PREFERRED_SELLERS);
+        const primaryPrefs = allPrefsForBuyer.slice(0, NUM_PRIMARY_PREFERRED_SELLERS).filter(id => id !== '');
+        const backupPrefs = allPrefsForBuyer.slice(NUM_PRIMARY_PREFERRED_SELLERS).filter(id => id !== '');
+
+        if (primaryPrefs.length === 0 && backupPrefs.length === 0) {
+          console.warn(`Buyer ${buyer.name} has no preferred sellers. Skipping.`);
+          return;
+        }
+        
+        let availablePrimarySellers = [...primaryPrefs].sort(() => Math.random() - 0.5);
+        let availableBackupSellers = [...backupPrefs].sort(() => Math.random() - 0.5);
+        const assignedSellersForThisBuyer = new Set();
+        let assignedSlotsCount = 0;
+
+        const shuffledBuyerBlockSessions = [...buyerBlockSessions].sort(() => Math.random() - 0.5);
+
+        // Primary preferences first
+        for (const session of shuffledBuyerBlockSessions) {
+          if (assignedSlotsCount >= numSlotsForBuyer) break;
+
+          for (let i = 0; i < availablePrimarySellers.length; i++) {
+            const sellerId = availablePrimarySellers[i];
+            if (!sessionOccupancy[session.id].has(sellerId) && !assignedSellersForThisBuyer.has(sellerId)) {
+              newSchedule[buyer.id][session.id] = sellerId;
+              sessionOccupancy[session.id].add(sellerId);
+              assignedSellersForThisBuyer.add(sellerId);
+              availablePrimarySellers.splice(i, 1);
+              assignedSlotsCount++;
+              break;
+            }
+          }
+        }
+
+        // Backup preferences if slots still available
+        if (assignedSlotsCount < numSlotsForBuyer) {
+          for (const session of shuffledBuyerBlockSessions) {
+            if (assignedSlotsCount >= numSlotsForBuyer) break;
+            if (newSchedule[buyer.id][session.id] !== null) continue;
+
+            for (let i = 0; i < availableBackupSellers.length; i++) {
+              const sellerId = availableBackupSellers[i];
+              if (!sessionOccupancy[session.id].has(sellerId) && !assignedSellersForThisBuyer.has(sellerId)) {
+                newSchedule[buyer.id][session.id] = sellerId;
+                sessionOccupancy[session.id].add(sellerId);
+                assignedSellersForThisBuyer.add(sellerId);
+                availableBackupSellers.splice(i, 1);
+                assignedSlotsCount++;
+                break;
+              }
+            }
+          }
+        }
+      });
+
+      return newSchedule;
+    };
+
+    const formatDate = (dateStr) => {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('zh-TW', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      });
+    };
+
+    // Data Management
+    const loadData = () => {
+      try {
+        const loadedBuyers = JSON.parse(localStorage.getItem('master-buyers') || '[]');
+        const loadedSellers = JSON.parse(localStorage.getItem('master-sellers') || '[]');
+        
+        masterBuyers = loadedBuyers;
+        masterSellers = loadedSellers;
+        buyerPreferences = JSON.parse(localStorage.getItem('buyer-preferences') || '{}');
+        events = JSON.parse(localStorage.getItem('matching-events') || '[]');
+        
+        console.log('=== 資料載入完成 ===');
+        console.log('從 localStorage 載入的賣家數量:', loadedSellers.length);
+        console.log('從 localStorage 載入的賣家名稱:', loadedSellers.map(s => s.name));
+        console.log('搜尋功能將使用這些後台管理的賣家資料');
+      } catch (e) {
+        console.error('Error loading data:', e);
+        initializeData();
+      }
+    };
+
+    const saveData = () => {
+      localStorage.setItem('master-buyers', JSON.stringify(masterBuyers));
+      localStorage.setItem('master-sellers', JSON.stringify(masterSellers));
+      localStorage.setItem('buyer-preferences', JSON.stringify(buyerPreferences));
+      localStorage.setItem('matching-events', JSON.stringify(events));
+    };
+
+    const initializeData = () => {
+      // Check if we need to restore preferences after buyer updates
+      const existingBuyerPrefs = JSON.parse(localStorage.getItem('buyer-preferences') || '{}');
+      
+      if (masterBuyers.length === 0) {
+        masterBuyers = [
+          { id: 'b1', name: '菲律賓科技公司', country: '菲律賓', sessionBlock: 'morning', profile: 'Leading technology company from Philippines specializing in IT solutions and software development services.' },
+          { id: 'b2', name: '泰國製造企業', country: '泰國', sessionBlock: 'morning', profile: 'Major manufacturing enterprise from Thailand focusing on automotive parts and industrial equipment production.' },
+          { id: 'b3', name: '馬來西亞貿易公司', country: '馬來西亞', sessionBlock: 'afternoon', profile: 'International trading company from Malaysia dealing with electronics and consumer goods import/export.' },
+          { id: 'b4', name: '越南電子公司', country: '越南', sessionBlock: 'afternoon', profile: 'Electronics manufacturer from Vietnam producing mobile accessories and smart devices for global markets.' },
+          { id: 'b5', name: '日本精密工業', country: '日本', sessionBlock: 'morning', profile: 'Precision engineering company from Japan with expertise in high-tech manufacturing and quality control systems.' }
+        ];
+      }
+      
+      if (masterSellers.length === 0) {
+        masterSellers = [
+          { id: 's1', name: '台灣科技股份有限公司', profile: 'Leading technology company specializing in semiconductor manufacturing and AI solutions for global markets.' },
+          { id: 's2', name: '台灣製造企業有限公司', profile: 'Advanced manufacturing enterprise focused on precision machinery and automotive components export.' },
+          { id: 's3', name: '創新科技股份有限公司', profile: 'Innovation-driven startup developing sustainable energy solutions and smart city technologies.' },
+          { id: 's4', name: '精密工業股份有限公司', profile: 'Precision engineering company producing high-quality industrial equipment for aerospace industry.' },
+          { id: 's5', name: '綠能科技股份有限公司', profile: 'Green technology leader in solar panel manufacturing and renewable energy system integration.' },
+          { id: 's6', name: '生技醫療股份有限公司', profile: 'Biotechnology firm specializing in medical devices and pharmaceutical research for healthcare innovation.' },
+          { id: 's7', name: '智慧機械股份有限公司', profile: 'Smart machinery manufacturer providing automated solutions for industrial and commercial applications.' },
+          { id: 's8', name: '文創設計工作室', profile: 'Creative design studio offering branding, digital marketing, and cultural product development services.' },
+          { id: 's9', name: '潤玉科技股份有限公司', profile: 'Advanced technology company specializing in precision manufacturing and innovative solutions for international markets.' }
+        ];
+      }
+
+      // Restore existing preferences or create new ones
+      if (Object.keys(existingBuyerPrefs).length > 0) {
+        // Keep existing preferences if they exist
+        buyerPreferences = existingBuyerPrefs;
+        console.log('恢復現有買家偏好設定');
+      } else if (Object.keys(buyerPreferences).length === 0) {
+        // Create default preferences only if none exist
+        buyerPreferences = {
+          'b1': ['s1', 's2', 's3', 's9', 's4', 's5', 's6', 's7', 's8', ''],
+          'b2': ['s2', 's1', 's9', 's4', 's3', 's6', 's5', 's8', 's7', ''],
+          'b3': ['s3', 's4', 's1', 's2', 's7', 's8', 's5', 's6', 's9', ''],
+          'b4': ['s4', 's3', 's2', 's1', 's8', 's7', 's6', 's5', 's9', ''],
+          'b5': ['s1', 's3', 's9', 's5', 's7', 's2', 's4', 's6', 's8', '']
+        };
+        console.log('創建預設買家偏好設定');
+      }
+
+      if (events.length === 0) {
+        events = [
+          {
+            id: 'event1',
+            name: '台北國際媒合會',
+            date: '2025-07-15',
+            sessionSettings: INITIAL_SESSION_SETTINGS,
+            participants: {
+              buyers: [
+                { id: 'b1', name: '菲律賓科技公司', country: '菲律賓', sessionBlock: 'morning', profile: 'Leading technology company from Philippines specializing in IT solutions and software development services.' },
+                { id: 'b2', name: '泰國製造企業', country: '泰國', sessionBlock: 'morning', profile: 'Major manufacturing enterprise from Thailand focusing on automotive parts and industrial equipment production.' },
+                { id: 'b5', name: '日本精密工業', country: '日本', sessionBlock: 'morning', profile: 'Precision engineering company from Japan with expertise in high-tech manufacturing and quality control systems.' }
+              ],
+              sellers: [
+                { id: 's1', name: '台灣科技股份有限公司', profile: 'Leading technology company specializing in semiconductor manufacturing and AI solutions for global markets.' },
+                { id: 's2', name: '台灣製造企業有限公司', profile: 'Advanced manufacturing enterprise focused on precision machinery and automotive components export.' },
+                { id: 's3', name: '創新科技股份有限公司', profile: 'Innovation-driven startup developing sustainable energy solutions and smart city technologies.' },
+                { id: 's9', name: '潤玉科技股份有限公司', profile: 'Advanced technology company specializing in precision manufacturing and innovative solutions for international markets.' }
+              ]
+            },
+            schedule: {
+              'b1': { 'M_s1': 's1', 'M_s2': 's2', 'M_s3': 's3', 'M_s4': 's9', 'M_s5': null, 'M_s6': null },
+              'b2': { 'M_s1': 's2', 'M_s2': 's1', 'M_s3': 's9', 'M_s4': null, 'M_s5': null, 'M_s6': null },
+              'b5': { 'M_s1': 's3', 'M_s2': 's9', 'M_s3': 's1', 'M_s4': null, 'M_s5': null, 'M_s6': null }
+            }
+          }
+        ];
+      }
+
+      saveData();
+    };
+
+    // Event Handlers
+    const goToAdmin = () => {
+      if (isAuthenticated) {
+        currentView = 'admin';
+      } else {
+        showLoginModal = true;
+      }
+      render();
+    };
+
+    const goToSearch = () => {
+      currentView = 'search';
+      render();
+    };
+
+    const handleLogin = () => {
+      if (loginPassword === adminPassword) {
+        isAuthenticated = true;
+        showLoginModal = false;
+        currentView = 'admin';
+        loginError = '';
+        sessionStorage.setItem('adminAuthenticated', 'true');
+      } else {
+        loginError = 'Password incorrect, please try again';
+      }
+      loginPassword = '';
+      render();
+    };
+
+    const handleLogout = () => {
+      isAuthenticated = false;
+      currentView = 'search';
+      sessionStorage.removeItem('adminAuthenticated');
+      render();
+    };
+
+    const openPasswordModal = () => {
+      showPasswordModal = true;
+      currentPassword = '';
+      newPassword = '';
+      confirmPassword = '';
+      render();
+    };
+
+    const handleChangePassword = () => {
+      if (currentPassword !== adminPassword) {
+        alert('Current password is incorrect');
+        return;
+      }
+      
+      if (newPassword.length < 6) {
+        alert('New password must be at least 6 characters long');
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        alert('New password and confirmation do not match');
+        return;
+      }
+      
+      adminPassword = newPassword;
+      localStorage.setItem('adminPassword', adminPassword);
+      showPasswordModal = false;
+      currentPassword = '';
+      newPassword = '';
+      confirmPassword = '';
+      alert('Password changed successfully!');
+      render();
+    };
+
+    const closeModal = () => {
+      showLoginModal = false;
+      showBuyerModal = false;
+      showSellerModal = false;
+      showEventModal = false;
+      showParticipantModal = false;
+      showPreferenceModal = false;
+      showEditBuyerModal = false;
+      showEditSellerModal = false;
+      showImportModal = false;
+      showPasswordModal = false;
+      loginError = '';
+      loginPassword = '';
+      
+      // Reset event session configuration variables to defaults
+      newEventSessionCount = 6;
+      newEventSessionDuration = 30;
+      newEventBreakDuration = 5;
+      newEventMorningStart = '09:30';
+      newEventAfternoonStart = '13:30';
+      
+      render();
+    };
+
+    // Search functionality
+    let searchUpdateTimeout = null;
+    
+    const handleSearchInput = (e) => {
+      // 只更新searchTerm，不觸發render
+      searchTerm = e.target.value;
+      console.log('搜尋詞更新為:', searchTerm);
+      
+      // 立即更新建議，但不重新渲染整個卡片
+      updateSuggestionsOnly();
+    };
+    
+    const handleSearchKeyup = (e) => {
+      // 避免在中文輸入法組合期間觸發搜尋
+      if (e.isComposing || e.keyCode === 229) {
+        console.log('中文輸入法組合中，跳過搜尋');
+        return;
+      }
+      
+      // 清除之前的超時
+      if (searchUpdateTimeout) {
+        clearTimeout(searchUpdateTimeout);
+      }
+      
+      console.log('搜尋輸入事件觸發, 搜尋詞:', searchTerm);
+      
+      // 延遲更新結果，給中文輸入足夠時間
+      searchUpdateTimeout = setTimeout(() => {
+        console.log('開始更新搜尋結果');
+        updateSearchResultsOnly();
+      }, 300);
+    };
+    
+    const updateSuggestionsOnly = () => {
+      const suggestions = getSuggestions(searchTerm);
+      const exactMatch = masterSellers.find(s => s.name === searchTerm.trim());
+      const shouldShowSuggestions = !exactMatch && suggestions.length > 0 && searchTerm.trim();
+      
+      const suggestionsContainer = document.querySelector('.suggestions-container');
+      if (suggestionsContainer) {
+        suggestionsContainer.innerHTML = shouldShowSuggestions ? `
+          <div class="suggestions">
+            ${suggestions.map(seller => `
+              <div class="suggestion-item" onclick="selectSeller({id: '${seller.id}', name: '${seller.name}'})">
+                ${seller.name}
+              </div>
+            `).join('')}
+          </div>
+        ` : '';
+      }
+    };
+    
+    const updateSearchResultsOnly = () => {
+      const meetings = getSellerMeetings();
+      const resultsContainer = document.querySelector('.search-results-container');
+      if (resultsContainer) {
+        resultsContainer.innerHTML = generateSearchResults(meetings);
+      }
+    };
+    
+    // 聲明函數以便提升
+    function generateSearchResults(meetings) {
+      if (meetings.length > 0) {
+        // 根據活動分組會議
+        const meetingsByEvent = {};
+        meetings.forEach(meeting => {
+          const eventId = meeting.event.id;
+          if (!meetingsByEvent[eventId]) {
+            meetingsByEvent[eventId] = {
+              event: meeting.event,
+              sessions: []
+            };
+          }
+          meetingsByEvent[eventId].sessions.push({
+            sessionName: meeting.session.name,
+            timeSlot: `${meeting.session.startTime} - ${meeting.session.endTime}`,
+            sessionPeriod: meeting.session.block,
+            buyer: meeting.buyer
+          });
+        });
+
+        return `
+          <div style="margin-top: 1.5rem;">
+            <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+              Meeting arrangements for ${searchTerm}
+            </h3>
+            <div>
+              ${Object.values(meetingsByEvent).map(eventMeeting => `
+                <div class="meeting-result">
+                  <div class="meeting-result-header">
+                    <div style="flex: 1;">
+                      <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                        <h4 class="meeting-event">📅 ${eventMeeting.event.name}</h4>
+                        <span class="meeting-date">${formatDate(eventMeeting.event.date)}</span>
+                      </div>
+                      ${(() => {
+                        const seller = masterSellers.find(s => s.name === searchTerm.trim()) || 
+                                      masterSellers.find(s => s.name.includes(searchTerm.trim()));
+                        return seller && seller.profile ? `
+                          <div style="margin-bottom: 0.75rem; padding: 0.5rem; background: var(--gray-100); border-left: 3px solid var(--gray-400); border-radius: 4px;">
+                            <div style="font-weight: 600; color: var(--gray-800); font-size: 0.875rem; margin-bottom: 0.25rem;">🏢 Seller Profile</div>
+                            <div style="font-size: 0.875rem; color: var(--gray-900); font-style: italic;">${seller.profile}</div>
+                          </div>
+                        ` : '';
+                      })()}
+                    </div>
+                  </div>
+                  
+                  <div class="meeting-sessions">
+                    ${eventMeeting.sessions.map((session, index) => `
+                      <div class="session-card" style="
+                        border: 2px solid var(--gray-300); 
+                        border-radius: 8px; 
+                        padding: 1rem; 
+                        margin-bottom: ${index < eventMeeting.sessions.length - 1 ? '1.5rem' : '0'}; 
+                        background: var(--white);
+                        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+                      ">
+                        <div class="session-time" style="
+                          border-bottom: 1px solid var(--gray-200); 
+                          padding-bottom: 0.75rem; 
+                          margin-bottom: 0.75rem;
+                        ">
+                          <div style="font-weight: 600; color: var(--gray-800); font-size: 0.875rem; margin-bottom: 0.25rem;">Session: ${session.sessionName}</div>
+                          <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.25rem;">Time: ${session.timeSlot}</div>
+                          <div style="font-size: 0.875rem; color: var(--gray-600); margin-bottom: 0.5rem;">Time Slot: ${session.sessionPeriod === 'morning' ? 'Morning Session' : 'Afternoon Session'}</div>
+                        </div>
+                        
+                        <div style="margin-top: 0.5rem;">
+                          <div style="font-weight: 600; color: var(--gray-800); font-size: 0.875rem; margin-bottom: 0.5rem;">🏢 Buyer Information:</div>
+                          <div style="padding: 0.5rem; background: var(--gray-50); border-radius: 4px;">
+                            <div style="margin-bottom: 0.25rem;">
+                              <span class="detail-label">${session.buyer.name}</span>
+                            </div>
+                            <div style="margin-bottom: 0.25rem;">
+                              <span class="detail-label">🌍 Source Country: </span>${session.buyer.country}
+                            </div>
+                            <div style="margin-bottom: 0.25rem;">
+                              <span class="detail-label">⏰ Preferred Time Slot: </span>${session.buyer.sessionBlock === 'morning' ? 'Morning' : 'Afternoon'}
+                            </div>
+                            ${session.buyer.profile ? `
+                              <div style="margin-top: 0.5rem; padding-top: 0.5rem; border-top: 1px solid var(--gray-300);">
+                                <div style="font-weight: 600; color: var(--gray-700); font-size: 0.8rem; margin-bottom: 0.25rem;">📝 Buyer Profile:</div>
+                                <div style="font-size: 0.8rem; color: var(--gray-600); line-height: 1.4; font-style: italic;">
+                                  ${session.buyer.profile}
+                                </div>
+                              </div>
+                            ` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (searchTerm.trim()) {
+        // First try exact match, then partial match
+        let foundSeller = masterSellers.find(s => s.name === searchTerm.trim());
+        if (!foundSeller) {
+          foundSeller = masterSellers.find(s => s.name.includes(searchTerm.trim()));
+        }
+        if (foundSeller) {
+          return `
+            <div style="margin-top: 1.5rem;">
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+                Search Result: ${foundSeller.name}
+              </h3>
+              <div style="padding: 1rem; background: var(--gray-100); border-radius: 8px; margin-bottom: 1rem;">
+                <div style="font-weight: 600; color: var(--gray-800); font-size: 0.875rem; margin-bottom: 0.5rem;">🏢 Seller Information</div>
+                <div style="margin-bottom: 0.5rem;">
+                  <strong>Company Name: </strong>${foundSeller.name}
+                </div>
+                ${foundSeller.profile ? `
+                  <div style="margin-bottom: 0.5rem;">
+                    <strong>Company Profile: </strong>${foundSeller.profile}
+                  </div>
+                ` : ''}
+              </div>
+              <div class="text-center">
+                <p class="text-gray">No meeting arrangements currently scheduled</p>
+                <p class="text-small text-gray mt-1">
+                  This seller has not yet participated in any matching events. Please contact the administrator to schedule matching activities.
+                </p>
+              </div>
+            </div>
+          `;
+        } else {
+          return `
+            <div style="margin-top: 1.5rem;">
+              <div class="text-center">
+                <p class="text-gray">No matching seller found</p>
+                <p class="text-small text-gray mt-1">
+                  Please verify the company name is correct, or contact the administrator to add seller information
+                </p>
+              </div>
+            </div>
+          `;
+        }
+      } else {
+        return `
+          <div class="text-center mt-4">
+            <p class="text-gray">Please enter company name to start searching</p>
+            <p class="text-small text-gray mt-1">
+              Searching ${masterSellers.length} sellers from admin-managed database
+            </p>
+            <p class="text-small text-gray mt-1">
+              Current sellers: ${masterSellers.slice(0, 3).map(s => s.name).join(', ')}${masterSellers.length > 3 ? ` and ${masterSellers.length - 3} more...` : ''}
+            </p>
+          </div>
+        `;
+      }
+    }
+
+    const updateSearchUI = () => {
+      console.log('updateSearchUI 被調用');
+      // 嘗試部分更新，如果失敗則重新渲染整個卡片
+      const suggestionsContainer = document.querySelector('.suggestions-container');
+      const resultsContainer = document.querySelector('.search-results-container');
+      
+      if (suggestionsContainer && resultsContainer) {
+        console.log('使用部分更新');
+        updateSuggestionsOnly();
+        updateSearchResultsOnly();
+      } else {
+        console.log('容器未找到，重新渲染整個搜尋卡片');
+        const searchCard = document.querySelector('.card');
+        if (searchCard && currentView === 'search') {
+          searchCard.innerHTML = generateSearchCardContent();
+        }
+      }
+    };
+    
+    
+    const generateSearchCardContent = () => {
+      console.log('生成搜尋卡片內容，當前搜尋詞:', searchTerm);
+      
+      const suggestions = getSuggestions(searchTerm);
+      const meetings = getSellerMeetings();
+      
+      // 重新計算 showSuggestions
+      const exactMatch = masterSellers.find(s => s.name === searchTerm.trim());
+      const shouldShowSuggestions = !exactMatch && suggestions.length > 0 && searchTerm.trim();
+      
+      console.log('建議清單:', suggestions);
+      console.log('會議清單:', meetings);
+      console.log('是否顯示建議:', shouldShowSuggestions);
+      
+      return `
+        <h2 class="card-title">Seller Meeting Query</h2>
+        
+        <div class="search-input">
+          <input 
+            type="text" 
+            class="input" 
+            placeholder="Enter company name to search..."
+            value="${searchTerm}"
+            oninput="handleSearchInput(event)"
+            onkeyup="handleSearchKeyup(event)"
+            style="font-size: 1.125rem; padding: 1rem;"
+          />
+          
+          <div class="suggestions-container">
+            ${shouldShowSuggestions ? `
+              <div class="suggestions">
+                ${suggestions.map(seller => `
+                  <div class="suggestion-item" onclick="selectSeller({id: '${seller.id}', name: '${seller.name}'})">
+                    ${seller.name}
+                  </div>
+                `).join('')}
+              </div>
+            ` : ''}
+          </div>
+        </div>
+
+        <div class="search-results-container">
+          ${generateSearchResults(meetings)}
+        </div>
+      `;
+    };
+
+    const getSuggestions = (term) => {
+      if (!term.trim()) return [];
+      const searchTerm = term.trim();
+      console.log('搜尋建議，搜尋詞:', searchTerm);
+      console.log('當前 masterSellers 資料來源: localStorage中的實際資料');
+      console.log('masterSellers 總數:', masterSellers.length);
+      console.log('所有可搜尋的賣家公司名稱:', masterSellers.map(s => s.name));
+      
+      const matches = masterSellers.filter(seller => {
+        const isMatch = seller.name.includes(searchTerm);
+        console.log(`檢查 "${seller.name}" 是否包含 "${searchTerm}":`, isMatch);
+        return isMatch;
+      });
+      
+      console.log('找到的匹配:', matches.map(m => m.name));
+      return matches.slice(0, 8); // 增加建議數量
+    };
+
+    const selectSeller = (seller) => {
+      console.log('selectSeller 被調用，賣家:', seller.name);
+      searchTerm = seller.name;
+      
+      // 更新輸入框的值
+      const searchInput = document.querySelector('.search-input input');
+      if (searchInput) {
+        searchInput.value = seller.name;
+      }
+      
+      // 立即更新建議和結果
+      updateSuggestionsOnly();
+      updateSearchResultsOnly();
+    };
+
+    const getSellerMeetings = () => {
+      console.log('=== 搜尋會議資料來源確認 ===');
+      console.log('搜尋詞:', searchTerm);
+      console.log('資料來源: 使用後台管理的 masterSellers 資料 (非預設測試資料)');
+      console.log('總賣家數量:', masterSellers.length);
+      console.log('localStorage 賣家資料:', JSON.parse(localStorage.getItem('master-sellers') || '[]').map(s => s.name));
+      console.log('當前 masterSellers 賣家名稱:', masterSellers.map(s => s.name));
+      
+      const trimmedSearch = searchTerm.trim();
+      console.log('修剪後的搜尋詞:', trimmedSearch);
+      
+      // First try exact match, then partial match
+      let selectedSeller = masterSellers.find(s => {
+        const exactMatch = s.name === trimmedSearch;
+        console.log(`精確匹配檢查: "${s.name}" === "${trimmedSearch}":`, exactMatch);
+        return exactMatch;
+      });
+      
+      // If no exact match, try partial match
+      if (!selectedSeller && trimmedSearch) {
+        selectedSeller = masterSellers.find(s => {
+          const partialMatch = s.name.includes(trimmedSearch);
+          console.log(`部分匹配檢查: "${s.name}".includes("${trimmedSearch}"):`, partialMatch);
+          return partialMatch;
+        });
+      }
+      
+      console.log('最終找到的賣家:', selectedSeller);
+      
+      if (!selectedSeller) {
+        console.log('沒有找到匹配的賣家');
+        return [];
+      }
+
+      const meetings = [];
+      
+      events.forEach(event => {
+        const eventSellers = event.participants.sellers || [];
+        if (!eventSellers.some(s => s.id === selectedSeller.id)) return;
+
+        const eventBuyers = event.participants.buyers || [];
+        const schedule = event.schedule || {};
+        const sessionSettings = event.sessionSettings;
+        
+        const morningSessions = calculateSessions(sessionSettings, 'morning');
+        const afternoonSessions = calculateSessions(sessionSettings, 'afternoon');
+        const allSessions = [...morningSessions, ...afternoonSessions];
+
+        Object.entries(schedule).forEach(([buyerId, sessions]) => {
+          Object.entries(sessions).forEach(([sessionId, sellerId]) => {
+            if (sellerId === selectedSeller.id) {
+              const buyer = eventBuyers.find(b => b.id === buyerId);
+              const session = allSessions.find(s => s.id === sessionId);
+              if (buyer && session) {
+                meetings.push({ 
+                  event, 
+                  buyer, 
+                  session 
+                });
+              }
+            }
+          });
+        });
+      });
+
+      return meetings.sort((a, b) => {
+        const dateA = new Date(a.event.date);
+        const dateB = new Date(b.event.date);
+        if (dateA.getTime() !== dateB.getTime()) {
+          return dateA - dateB;
+        }
+        if (a.session.block !== b.session.block) {
+          return a.session.block === 'morning' ? -1 : 1;
+        }
+        return a.session.startTime.localeCompare(b.session.startTime);
+      });
+    };
+
+    // Admin functions
+    const handleAddBuyer = () => {
+      if (!newBuyerName.trim() || !newBuyerCountry.trim()) {
+        alert("Buyer name and country are required fields");
+        return;
+      }
+
+      if (countEnglishWords(newBuyerProfile.trim()) > 500) {
+        alert("Buyer profile cannot exceed 500 English words");
+        return;
+      }
+
+      const newBuyer = {
+        id: generateId(),
+        name: newBuyerName.trim(),
+        country: newBuyerCountry.trim(),
+        sessionBlock: newBuyerBlock,
+        profile: newBuyerProfile.trim() || 'No profile information available.'
+      };
+
+      masterBuyers.push(newBuyer);
+      newBuyerName = '';
+      newBuyerCountry = '';
+      newBuyerProfile = '';
+      saveData();
+      alert('Buyer added successfully!');
+      render();
+    };
+
+    const handleEditBuyer = (id) => {
+      const buyer = masterBuyers.find(b => b.id === id);
+      if (buyer) {
+        editingBuyerId = id;
+        editBuyerName = buyer.name;
+        editBuyerCountry = buyer.country;
+        editBuyerProfile = buyer.profile || '';
+        editBuyerBlock = buyer.sessionBlock;
+        showEditBuyerModal = true;
+        render();
+      }
+    };
+
+    const handleSaveEditBuyer = () => {
+      if (!editBuyerName.trim() || !editBuyerCountry.trim()) {
+        alert("Buyer name and country are required fields");
+        return;
+      }
+
+      if (countEnglishWords(editBuyerProfile.trim()) > 500) {
+        alert("Buyer profile cannot exceed 500 English words");
+        return;
+      }
+
+      const buyerIndex = masterBuyers.findIndex(b => b.id === editingBuyerId);
+      if (buyerIndex !== -1) {
+        masterBuyers[buyerIndex] = {
+          ...masterBuyers[buyerIndex],
+          name: editBuyerName.trim(),
+          country: editBuyerCountry.trim(),
+          profile: editBuyerProfile.trim() || 'No profile information available.',
+          sessionBlock: editBuyerBlock
+        };
+        
+        // Update events that include this buyer
+        events = events.map(event => ({
+          ...event,
+          participants: {
+            ...event.participants,
+            buyers: event.participants.buyers?.map(b => 
+              b.id === editingBuyerId ? masterBuyers[buyerIndex] : b
+            ) || []
+          }
+        }));
+        
+        showEditBuyerModal = false;
+        saveData();
+        alert('Buyer data updated successfully!');
+        render();
+      }
+    };
+
+    const handleDeleteBuyer = (id) => {
+      if (confirm('Are you sure you want to delete this buyer?')) {
+        masterBuyers = masterBuyers.filter(b => b.id !== id);
+        delete buyerPreferences[id];
+        events = events.map(event => ({
+          ...event,
+          participants: {
+            ...event.participants,
+            buyers: event.participants.buyers?.filter(b => b.id !== id) || []
+          }
+        }));
+        saveData();
+        render();
+      }
+    };
+
+    const handleAddSeller = () => {
+      if (!newSellerName.trim()) {
+        alert("Seller name cannot be empty");
+        return;
+      }
+
+      if (countEnglishWords(newSellerProfile.trim()) > 500) {
+        alert("Seller profile cannot exceed 500 English words");
+        return;
+      }
+
+      if (masterSellers.find(s => s.name === newSellerName.trim())) {
+        alert("This seller already exists");
+        return;
+      }
+
+      const newSeller = {
+        id: generateId(),
+        name: newSellerName.trim(),
+        profile: newSellerProfile.trim() || 'No profile information available.'
+      };
+
+      masterSellers.push(newSeller);
+      newSellerName = '';
+      newSellerProfile = '';
+      saveData();
+      alert('Seller added successfully!');
+      render();
+    };
+
+    const handleEditSeller = (id) => {
+      const seller = masterSellers.find(s => s.id === id);
+      if (seller) {
+        editingSellerId = id;
+        editSellerName = seller.name;
+        editSellerProfile = seller.profile || '';
+        showEditSellerModal = true;
+        render();
+      }
+    };
+
+    const handleSaveEditSeller = () => {
+      if (!editSellerName.trim()) {
+        alert("Seller name cannot be empty");
+        return;
+      }
+
+      if (countEnglishWords(editSellerProfile.trim()) > 500) {
+        alert("Seller profile cannot exceed 500 English words");
+        return;
+      }
+
+      const sellerIndex = masterSellers.findIndex(s => s.id === editingSellerId);
+      if (sellerIndex !== -1) {
+        masterSellers[sellerIndex] = {
+          ...masterSellers[sellerIndex],
+          name: editSellerName.trim(),
+          profile: editSellerProfile.trim() || 'No profile information available.'
+        };
+        
+        // Update events that include this seller
+        events = events.map(event => ({
+          ...event,
+          participants: {
+            ...event.participants,
+            sellers: event.participants.sellers?.map(s => 
+              s.id === editingSellerId ? masterSellers[sellerIndex] : s
+            ) || []
+          }
+        }));
+        
+        showEditSellerModal = false;
+        saveData();
+        alert('Seller data updated successfully!');
+        render();
+      }
+    };
+
+    const handleDeleteSeller = (id) => {
+      if (confirm('Are you sure you want to delete this seller?')) {
+        masterSellers = masterSellers.filter(s => s.id !== id);
+        
+        Object.keys(buyerPreferences).forEach(buyerId => {
+          buyerPreferences[buyerId] = buyerPreferences[buyerId].map(sellerId => sellerId === id ? '' : sellerId);
+        });
+
+        events = events.map(event => ({
+          ...event,
+          participants: {
+            ...event.participants,
+            sellers: event.participants.sellers?.filter(s => s.id !== id) || []
+          }
+        }));
+        
+        saveData();
+        render();
+      }
+    };
+
+    const handleCreateEvent = () => {
+      if (!newEventName.trim() || !newEventDate) {
+        alert("Event name and date are required fields");
+        return;
+      }
+
+      const newEvent = {
+        id: generateId(),
+        name: newEventName.trim(),
+        date: newEventDate,
+        sessionSettings: {
+      count: newEventSessionCount,
+      durationMinutes: newEventSessionDuration,
+      breakMinutes: newEventBreakDuration,
+      morningStartTime: newEventMorningStart,
+      afternoonStartTime: newEventAfternoonStart,
+    },
+        participants: {
+          buyers: [],
+          sellers: []
+        },
+        schedule: {}
+      };
+
+      events.push(newEvent);
+      newEventName = '';
+      newEventDate = '';
+      showEventModal = false;
+      
+      // Reset event session configuration variables to defaults
+      newEventSessionCount = 6;
+      newEventSessionDuration = 30;
+      newEventBreakDuration = 5;
+      newEventMorningStart = '09:30';
+      newEventAfternoonStart = '13:30';
+      
+      saveData();
+      alert('Matching event created successfully!');
+      render();
+    };
+
+    const handleDeleteEvent = (id) => {
+      if (confirm('Are you sure you want to delete this matching event?')) {
+        events = events.filter(e => e.id !== id);
+        if (currentEvent?.id === id) {
+          currentEvent = null;
+        }
+        saveData();
+        render();
+      }
+    };
+
+    const handleSelectEvent = (event) => {
+      currentEvent = event;
+      render();
+    };
+
+    const handleAutoScheduleEvent = () => {
+      if (!currentEvent) {
+        alert("Please select a matching event first");
+        return;
+      }
+
+      const buyers = currentEvent.participants.buyers;
+      const sellers = currentEvent.participants.sellers;
+
+      if (buyers.length === 0 || sellers.length === 0) {
+        alert("Please ensure the event has buyer and seller participants");
+        return;
+      }
+
+      const morningSessions = calculateSessions(currentEvent.sessionSettings, 'morning');
+      const afternoonSessions = calculateSessions(currentEvent.sessionSettings, 'afternoon');
+      const allSessions = [...morningSessions, ...afternoonSessions];
+
+      const newSchedule = performAutoSchedule(buyers, allSessions, buyerPreferences, sellers);
+      
+      currentEvent.schedule = newSchedule;
+      events = events.map(e => e.id === currentEvent.id ? currentEvent : e);
+      saveData();
+      alert('Smart scheduling completed!');
+      render();
+    };
+
+    const handleOpenPreferences = (buyerId) => {
+      selectedBuyerForPref = buyerId;
+      const existingPrefs = buyerPreferences[buyerId] || [];
+      currentPreferences = existingPrefs.concat(Array(Math.max(0, TOTAL_PREFERRED_SELLERS - existingPrefs.length)).fill(''));
+      showPreferenceModal = true;
+      render();
+    };
+
+    const handleSavePreferences = () => {
+      const filledPrefs = currentPreferences.filter(p => p !== '');
+      const uniquePrefs = new Set(filledPrefs);
+      
+      if (uniquePrefs.size !== filledPrefs.length) {
+        alert("Preferred sellers cannot be duplicated");
+        return;
+      }
+
+      buyerPreferences[selectedBuyerForPref] = [...currentPreferences];
+      showPreferenceModal = false;
+      saveData();
+      alert('Preference settings saved successfully!');
+      render();
+    };
+
+    // CSV Export Functions
+    const exportScheduleToCSV = (event) => {
+      if (!event || !event.schedule) {
+        alert('Please select an event with completed scheduling first');
+        return;
+      }
+
+      const morningSessions = calculateSessions(event.sessionSettings, 'morning');
+      const afternoonSessions = calculateSessions(event.sessionSettings, 'afternoon');
+      const allSessions = [...morningSessions, ...afternoonSessions].sort((a,b) => {
+        if (a.block !== b.block) {
+          return a.block === 'morning' ? -1 : 1;
+        }
+        return a.startTime.localeCompare(b.startTime);
+      });
+
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8
+      
+      const buyers = event.participants.buyers;
+      
+      // 行列置換：原來的行變成列，原來的列變成行
+      
+      // 第一行：買家名稱
+      csvContent += '"Buyer Name",' + buyers.map(buyer => `"${buyer.name}"`).join(",") + "\r\n";
+      
+      // 第二行：買家國家  
+      csvContent += '"Buyer Country",' + buyers.map(buyer => `"${buyer.country}"`).join(",") + "\r\n";
+      
+      // 第三行：時段偏好
+      csvContent += '"Time Slot Preference",' + buyers.map(buyer => `"${buyer.sessionBlock === 'morning' ? 'Morning' : 'Afternoon'}"`).join(",") + "\r\n";
+      
+      // 每個場次一行
+      allSessions.forEach(session => {
+        const row = [`"${session.name} (${session.startTime}-${session.endTime})"`];
+        buyers.forEach(buyer => {
+          const sellerId = event.schedule[buyer.id]?.[session.id];
+          const seller = event.participants.sellers.find(s => s.id === sellerId);
+          const sellerName = seller ? seller.name : "";
+          row.push(`"${sellerName}"`);
+        });
+        csvContent += row.join(",") + "\r\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", `${event.name}-智慧排程表-${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('Smart schedule CSV export successful!');
+    };
+
+
+    // Import Functions
+    const handleImportBuyersCSV = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,.xlsx,.xls';
+      
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            let data;
+            if (file.name.endsWith('.csv')) {
+              data = parseCSV(e.target.result);
+            } else {
+              alert('Excel file support coming soon, please convert to CSV format first');
+              return;
+            }
+            
+            if (data.length === 0) {
+              alert('File content is empty');
+              return;
+            }
+            
+            // Check if first row looks like headers
+            const hasHeaders = data[0].some(cell => 
+              ['name', 'country', 'profile', 'block', 'Name', 'Country', 'Profile', 'Time Slot'].some(header => 
+                cell.toLowerCase().includes(header.toLowerCase())
+              )
+            );
+            
+            const startRow = hasHeaders ? 1 : 0;
+            const newBuyers = [];
+            
+            for (let i = startRow; i < data.length; i++) {
+              const row = data[i];
+              if (row.length < 2 || !row[0]?.trim()) continue;
+              
+              const buyer = {
+                id: generateId(),
+                name: row[0]?.trim() || '',
+                country: row[1]?.trim() || '',
+                profile: row[2]?.trim() || 'No profile information available.',
+                sessionBlock: (row[3]?.trim().toLowerCase() === 'afternoon' || row[3]?.includes('Afternoon')) ? 'afternoon' : 'morning'
+              };
+              
+              if (buyer.name && buyer.country) {
+                newBuyers.push(buyer);
+              }
+            }
+            
+            if (newBuyers.length === 0) {
+              alert('No valid buyer data found');
+              return;
+            }
+            
+            if (confirm(`Ready to import ${newBuyers.length} buyers, are you sure you want to continue?`)) {
+              masterBuyers.push(...newBuyers);
+              saveData();
+              alert(`Successfully imported ${newBuyers.length} buyers!`);
+              showImportModal = false;
+              render();
+            }
+          } catch (error) {
+            alert('File format error:' + error.message);
+          }
+        };
+        reader.readAsText(file, 'UTF-8');
+      };
+      
+      input.click();
+    };
+
+    const handleImportSellersCSV = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.csv,.xlsx,.xls';
+      
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            let data;
+            if (file.name.endsWith('.csv')) {
+              data = parseCSV(e.target.result);
+            } else {
+              alert('Excel file support coming soon, please convert to CSV format first');
+              return;
+            }
+            
+            if (data.length === 0) {
+              alert('File content is empty');
+              return;
+            }
+            
+            // Check if first row looks like headers
+            const hasHeaders = data[0].some(cell => 
+              ['name', 'profile', 'Name', 'Profile'].some(header => 
+                cell.toLowerCase().includes(header.toLowerCase())
+              )
+            );
+            
+            const startRow = hasHeaders ? 1 : 0;
+            const newSellers = [];
+            
+            for (let i = startRow; i < data.length; i++) {
+              const row = data[i];
+              if (row.length < 1 || !row[0]?.trim()) continue;
+              
+              const seller = {
+                id: generateId(),
+                name: row[0]?.trim() || '',
+                profile: row[1]?.trim() || 'No profile information available.'
+              };
+              
+              if (seller.name) {
+                newSellers.push(seller);
+              }
+            }
+            
+            if (newSellers.length === 0) {
+              alert('No valid seller data found');
+              return;
+            }
+            
+            if (confirm(`Ready to import ${newSellers.length} sellers, are you sure you want to continue?`)) {
+              masterSellers.push(...newSellers);
+              saveData();
+              alert(`Successfully imported ${newSellers.length} sellers!`);
+              showImportModal = false;
+              render();
+            }
+          } catch (error) {
+            alert('File format error:' + error.message);
+          }
+        };
+        reader.readAsText(file, 'UTF-8');
+      };
+      
+      input.click();
+    };
+
+    // CSV Template Download Functions
+    const downloadBuyerTemplate = () => {
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8
+      
+      // Clean header
+      const header = ["Name", "Country", "Profile", "Session"];
+      csvContent += header.join(",") + "\r\n";
+      
+      // Sample data rows (fewer and cleaner)
+      const sampleRows = [
+        ["John Smith", "USA", "Technology expert with software development experience", "morning"],
+        ["Mary Johnson", "UK", "Marketing lead specializing in digital campaigns", "afternoon"]
+      ];
+      
+      sampleRows.forEach(row => {
+        const formattedRow = row.map(cell => `"${cell}"`);
+        csvContent += formattedRow.join(",") + "\r\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "buyer-import-template.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('Buyer CSV template downloaded successfully!\\n\\nPlease refer to the interface instructions to fill in the data. You can delete the sample data and keep only the header row.');
+    };
+
+    const downloadSellerTemplate = () => {
+      let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // BOM for UTF-8
+      
+      // Clean header
+      const header = ["Name", "Profile"];
+      csvContent += header.join(",") + "\r\n";
+      
+      // Sample data rows (fewer and cleaner)
+      const sampleRows = [
+        ["Apple Inc", "Technology company focusing on consumer electronics and software"],
+        ["Microsoft Corp", "Software solutions and cloud services provider for businesses"]
+      ];
+      
+      sampleRows.forEach(row => {
+        const formattedRow = row.map(cell => `"${cell}"`);
+        csvContent += formattedRow.join(",") + "\r\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "seller-import-template.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      alert('Seller CSV template downloaded successfully!\\n\\nPlease refer to the interface instructions to fill in the data. You can delete the sample data and keep only the header row.');
+    };
+
+    // JSON Export (existing)
+    const handleExportData = () => {
+      const exportData = {
+        masterBuyers,
+        masterSellers,
+        buyerPreferences,
+        events,
+        exportDate: new Date().toISOString()
+      };
+      
+      const dataStr = JSON.stringify(exportData, null, 2);
+      const dataBlob = new Blob([dataStr], {type: 'application/json'});
+      const url = URL.createObjectURL(dataBlob);
+      
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `meeting-scheduler-data-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      
+      alert('JSON data export successful!');
+    };
+
+    const handleImportData = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json';
+      
+      input.onchange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const importData = JSON.parse(e.target.result);
+            
+            if (confirm('Are you sure you want to import data? This will overwrite all current data.')) {
+              if (importData.masterBuyers) masterBuyers = importData.masterBuyers;
+              if (importData.masterSellers) masterSellers = importData.masterSellers;
+              if (importData.buyerPreferences) buyerPreferences = importData.buyerPreferences;
+              if (importData.events) events = importData.events;
+              currentEvent = null;
+              saveData();
+              alert('Data import successful!');
+              render();
+            }
+          } catch (error) {
+            alert('Data format error, please check the file format is correct.');
+          }
+        };
+        reader.readAsText(file);
+      };
+      
+      input.click();
+    };
+
+    const handleClearTestData = () => {
+      if (confirm('Are you sure you want to clear all test data? This will delete all buyers, sellers, preferences and event data.')) {
+        masterBuyers = [];
+        masterSellers = [];
+        buyerPreferences = {};
+        events = [];
+        currentEvent = null;
+        
+        localStorage.removeItem('master-buyers');
+        localStorage.removeItem('master-sellers');
+        localStorage.removeItem('buyer-preferences');
+        localStorage.removeItem('matching-events');
+        
+        alert('Test data cleared successfully!');
+        render();
+      }
+    };
+
+    const handleRestorePreferences = () => {
+      if (confirm('Are you sure you want to restore default preference settings? This will recreate default preferences for all buyers.')) {
+        // Create default preferences for existing buyers
+        buyerPreferences = {};
+        masterBuyers.forEach((buyer, index) => {
+          // Create a unique preference pattern for each buyer
+          const basePrefs = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8'];
+          const rotatedPrefs = basePrefs.slice(index % basePrefs.length).concat(basePrefs.slice(0, index % basePrefs.length));
+          buyerPreferences[buyer.id] = rotatedPrefs.concat(['', '']);
+        });
+        
+        saveData();
+        alert(`Successfully restored preference settings for ${masterBuyers.length} buyers!`);
+        render();
+      }
+    };
+
+    // Render functions
+    const renderSearch = () => {
+      return `
+        <div class="container">
+          <header class="header">
+            <h1 class="title">${APP_TITLE}</h1>
+            <p class="subtitle">Seller Meeting Time Query System</p>
+            <a href="#" class="nav-link" onclick="goToAdmin()">Administrator Portal</a>
+          </header>
+
+          <main style="width: 100%; max-width: 1000px;">
+            <div class="card">
+              ${generateSearchCardContent()}
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">Recent Matching Events</h3>
+              <div class="grid grid-3">
+                ${events.map(event => `
+                  <div class="event-card">
+                    <h4 style="font-weight: 500; color: #1d1d1f;">${event.name}</h4>
+                    <p class="text-small text-gray">${formatDate(event.date)}</p>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #86868b; margin-top: 0.5rem;">
+                      <span>Buyers: ${event.participants.buyers?.length || 0}</span>
+                      <span>Sellers: ${event.participants.sellers?.length || 0}</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </main>
+
+          <footer class="footer">
+            <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+          </footer>
+        </div>
+      `;
+    };
+
+    const renderAdmin = () => {
+      const allSessions = calculateSessions(INITIAL_SESSION_SETTINGS, 'morning')
+        .concat(calculateSessions(INITIAL_SESSION_SETTINGS, 'afternoon'));
+
+      return `
+        <div class="container admin-view">
+          <header class="header">
+            <div class="header-content">
+              <h1 class="title">${APP_TITLE} - Administrator Interface</h1>
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="button button-secondary" onclick="openPasswordModal()">Change Password</button>
+                <button class="button button-secondary" onclick="handleLogout()">Logout</button>
+              </div>
+            </div>
+            <a href="#" class="nav-link" onclick="goToSearch()">Go to User Query Interface</a>
+          </header>
+
+          <main style="width: 100%; max-width: 1200px;">
+            <div class="card">
+              <h2 class="card-title">Master Data Management</h2>
+              
+              <div class="grid grid-2 mb-4">
+                <div class="stat-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 class="stat-title">Buyer Master Database</h3>
+                    <button class="button button-small" onclick="showBuyerModal = true; render();">Manage Buyers</button>
+                  </div>
+                  <p class="stat-number">${masterBuyers.length} </p>
+                  <div class="stat-desc">
+                    ${['菲律賓', '泰國', '馬來西亞', '越南', '日本', '韓國'].map(country => {
+                      const count = masterBuyers.filter(b => b.country.includes(country)).length;
+                      return count > 0 ? `${country}: ${count}` : null;
+                    }).filter(Boolean).join(' | ')}
+                  </div>
+                </div>
+                
+                <div class="stat-card">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 class="stat-title">Seller Master Database 🇹🇼</h3>
+                    <button class="button button-small" onclick="showSellerModal = true; render();">Manage Sellers</button>
+                  </div>
+                  <p class="stat-number">${masterSellers.length} </p>
+                  <p class="stat-desc">Taiwan Sellers</p>
+                </div>
+              </div>
+
+              <div class="buttons">
+                <button class="button button-success" onclick="showEventModal = true; render();">
+                  ➕ Create Matching Event
+                </button>
+                <button class="button" onclick="handleExportData()">
+                  💾 Export Data Backup
+                </button>
+                <button class="button" onclick="showImportModal = true; render()">
+                  📥 Import Data
+                </button>
+                <button class="button button-secondary" onclick="downloadBuyerTemplate()">
+                  📄 Buyer Template
+                </button>
+                <button class="button button-secondary" onclick="downloadSellerTemplate()">
+                  📄 Seller Template
+                </button>
+                <button class="button" onclick="handleRestorePreferences()" style="background: var(--gray-600); color: var(--white);">
+                  🔄 Restore Preference Settings
+                </button>
+                <button class="button button-danger" onclick="handleClearTestData()">
+                  🗑️ Clear Test Data
+                </button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1rem;">Matching Event Management</h2>
+              
+              ${events.length === 0 ? `
+                <div class="text-center" style="padding: 2rem 0;">
+                  <p class="text-gray">尚未創建任何媒合活動</p>
+                  <p class="text-small text-gray mt-1">點擊上方按鈕創建第一個媒合活動</p>
+                </div>
+              ` : `
+                <div class="grid grid-3">
+                  ${events.map(event => `
+                    <div class="event-card ${currentEvent?.id === event.id ? 'selected' : ''}" onclick="handleSelectEvent(${JSON.stringify(event).replace(/"/g, '&quot;')})">
+                      <div class="event-header">
+                        <h3 class="event-title">${event.name}</h3>
+                        <button class="button button-danger button-small" onclick="event.stopPropagation(); handleDeleteEvent('${event.id}');">✕</button>
+                      </div>
+                      <p class="event-date">${formatDate(event.date)}</p>
+                      <div class="event-stats">
+                        <div class="event-stat">
+                          <span>Buyers:</span>
+                          <span>${event.participants.buyers?.length || 0} </span>
+                        </div>
+                        <div class="event-stat">
+                          <span>Sellers:</span>
+                          <span>${event.participants.sellers?.length || 0} </span>
+                        </div>
+                        <div class="event-stat">
+                          <span>排程:</span>
+                          <span>${Object.keys(event.schedule || {}).length > 0 && Object.values(event.schedule).some(buyerSchedule => Object.values(buyerSchedule).some(sellerId => sellerId !== null)) ? '已完成' : '未完成'}</span>
+                        </div>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+
+            ${currentEvent ? `
+              <div class="card">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                  <h2 style="font-size: 1.25rem; font-weight: 700;">當前活動：${currentEvent.name}</h2>
+                  <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                    <button class="button" onclick="buyerPage = 1; sellerPage = 1; showParticipantModal = true; render();">Manage Participants</button>
+                    <button class="button button-success" onclick="handleAutoScheduleEvent()">智能排程</button>
+                    <button class="button" onclick="exportScheduleToCSV(currentEvent)">📄 Export Smart Schedule</button>
+                  </div>
+                </div>
+
+                <div class="grid grid-4 mb-4">
+                  <div class="bg-light p-2 rounded">
+                    <h4 style="font-weight: 500; color: #86868b;">活動日期</h4>
+                    <p class="text-small text-gray">${formatDate(currentEvent.date)}</p>
+                  </div>
+                  <div class="stat-card" style="padding: 0.75rem;">
+                    <h4 class="stat-title">參與買家</h4>
+                    <p style="font-size: 1.125rem; font-weight: 700; color: var(--black);">${currentEvent.participants.buyers?.length || 0} </p>
+                  </div>
+                  <div class="stat-card" style="padding: 0.75rem;">
+                    <h4 class="stat-title">參與賣家</h4>
+                    <p style="font-size: 1.125rem; font-weight: 700; color: var(--black);">${currentEvent.participants.sellers?.length || 0} </p>
+                  </div>
+                  <div class="stat-card" style="padding: 0.75rem;">
+                    <h4 class="stat-title">排程狀態</h4>
+                    <p style="font-size: 1.125rem; font-weight: 700; color: #b8860b;">
+                      ${Object.keys(currentEvent.schedule || {}).length > 0 && Object.values(currentEvent.schedule).some(buyerSchedule => Object.values(buyerSchedule).some(sellerId => sellerId !== null)) ? '已完成' : '未完成'}
+                    </p>
+                  </div>
+                </div>
+
+                ${currentEvent.participants.buyers?.length > 0 ? `
+                  <div>
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">會議排程概覽</h3>
+                    
+                    ${Object.keys(currentEvent.schedule || {}).length > 0 && Object.values(currentEvent.schedule).some(buyerSchedule => Object.values(buyerSchedule).some(sellerId => sellerId !== null)) ? `
+                      <div style="margin-bottom: 1rem;">
+                        <div class="bg-success p-2 rounded mb-2">
+                          <h4 style="font-weight: 600; margin-bottom: 0.5rem;">✅ 排程已完成</h4>
+                          <p class="text-small">以下是根據買家偏好生成的會議安排：</p>
+                        </div>
+                        
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                          ${currentEvent.participants.buyers.map(buyer => {
+                            const buyerSchedule = currentEvent.schedule[buyer.id] || {};
+                            const buyerSessions = allSessions.filter(s => s.block === buyer.sessionBlock);
+                            const assignedMeetings = buyerSessions.filter(session => buyerSchedule[session.id]);
+                            
+                            if (assignedMeetings.length === 0) return '';
+                            
+                            return `
+                              <div class="schedule-card">
+                                <h5 class="schedule-header">
+                                  ${buyer.name} (${buyer.country}, ${buyer.sessionBlock === 'morning' ? 'Morning Session' : 'Afternoon Session'})
+                                </h5>
+                                <div class="grid grid-3">
+                                  ${assignedMeetings.map(session => {
+                                    const sellerId = buyerSchedule[session.id];
+                                    const seller = currentEvent.participants.sellers.find(s => s.id === sellerId);
+                                    return `
+                                      <div class="meeting-slot">
+                                        <div class="meeting-time">${session.name}</div>
+                                        <div class="text-small" style="color: #b8860b;">${session.startTime} - ${session.endTime}</div>
+                                        <div class="meeting-with">與 <strong>${seller?.name || '未知賣家'}</strong> 會談</div>
+                                      </div>
+                                    `;
+                                  }).join('')}
+                                </div>
+                              </div>
+                            `;
+                          }).join('')}
+                        </div>
+                      </div>
+                    ` : `
+                      <div class="bg-light p-3 rounded">
+                        <p class="text-gray mb-2">參與買家：</p>
+                        <div class="grid grid-2 mb-4">
+                          ${currentEvent.participants.buyers.map(buyer => `
+                            <div class="text-small bg-light p-2 rounded border">
+                              ${buyer.name} (${buyer.country}, ${buyer.sessionBlock === 'morning' ? 'Morning' : 'Afternoon'})
+                            </div>
+                          `).join('')}
+                        </div>
+                        <p class="text-gray mb-2">參與賣家：</p>
+                        <div class="grid grid-4 mb-4">
+                          ${currentEvent.participants.sellers?.map(seller => `
+                            <div class="text-small bg-light p-2 rounded border">
+                              ${seller.name}
+                            </div>
+                          `).join('')}
+                        </div>
+                        <div class="bg-info p-2 rounded">
+                          <p style="font-weight: 600; margin-bottom: 0.25rem;">ℹ️ 提示：</p>
+                          <p class="text-small">請先為買家設定偏好賣家，然後點擊「智能排程」按鈕來生成會議安排。</p>
+                        </div>
+                      </div>
+                    `}
+                  </div>
+                ` : ''}
+              </div>
+            ` : ''}
+          </main>
+
+          <footer class="footer">
+            <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+            <p class="text-small mt-1">資料管理：可匯出、匯入和Clear Test Data | 支持 JSON 格式</p>
+          </footer>
+        </div>
+      `;
+    };
+
+    const renderLoginModal = () => {
+      if (!showLoginModal) return '';
+      
+      return `
+        <div class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">Administrator Login</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <p class="text-center text-gray mb-4">請輸入管理員密碼以存取管理介面</p>
+              
+              <input 
+                type="password" 
+                class="input" 
+                placeholder="管理員密碼"
+                value="${loginPassword}"
+                oninput="loginPassword = event.target.value"
+                onkeypress="if(event.key === 'Enter') handleLogin()"
+              />
+              
+              ${loginError ? `
+                <div class="bg-warning p-2 rounded mb-2">
+                  <div class="text-small text-danger">${loginError}</div>
+                </div>
+              ` : ''}
+              
+              <button class="button" onclick="handleLogin()" style="width: 100%; margin-bottom: 1rem;">
+                Login to Administrator Interface
+              </button>
+              
+              <div class="text-center">
+                <a href="#" class="nav-link" onclick="closeModal(); goToSearch();">
+                  Return to User Query Interface
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderPasswordModal = () => {
+      if (!showPasswordModal) return '';
+      
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 500px;">
+            <div class="modal-header">
+              <h3 class="modal-title">Change Administrator Password</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">Current Password</label>
+                <input 
+                  type="password" 
+                  class="input" 
+                  placeholder="Enter current password"
+                  value="${currentPassword}"
+                  oninput="currentPassword = event.target.value"
+                />
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">New Password (minimum 6 characters)</label>
+                <input 
+                  type="password" 
+                  class="input" 
+                  placeholder="Enter new password"
+                  value="${newPassword}"
+                  oninput="newPassword = event.target.value"
+                />
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">Confirm New Password</label>
+                <input 
+                  type="password" 
+                  class="input" 
+                  placeholder="Confirm new password"
+                  value="${confirmPassword}"
+                  oninput="confirmPassword = event.target.value"
+                />
+              </div>
+              
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem;">
+                <button class="button button-secondary" onclick="closeModal()">Cancel</button>
+                <button class="button" onclick="handleChangePassword()">Change Password</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderBuyerModal = () => {
+      if (!showBuyerModal) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">買家Master Data Management</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+                ${masterBuyers.map(buyer => {
+                  const participatingEvents = events.filter(event => 
+                    event.participants.buyers?.some(b => b.id === buyer.id)
+                  );
+                  
+                  return `
+                    <div class="p-2 border-bottom">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600;">${buyer.name}</span>
+                            <span class="text-small text-gray">
+                              (${buyer.country}, ${buyer.sessionBlock === 'morning' ? 'Morning' : 'Afternoon'})
+                            </span>
+                          </div>
+                          <div class="text-small text-gray" style="margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #007aff;">簡介：</span>
+                            <span style="color: #1d1d1f; font-style: italic;">${buyer.profile || 'No profile information available.'}</span>
+                          </div>
+                          <div class="text-small text-gray">
+                            <span style="font-weight: 600; color: #b8860b;">參與活動：</span>
+                            ${participatingEvents.length > 0 ? `
+                              <div style="margin-top: 0.25rem;">
+                                ${participatingEvents.map(event => `
+                                  <span style="background: #fff8dc; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-right: 0.5rem; display: inline-block; margin-bottom: 0.25rem;">
+                                    ${event.name} (${formatDate(event.date)})
+                                  </span>
+                                `).join('')}
+                              </div>
+                            ` : `
+                              <span style="color: #86868b;">無參與活動</span>
+                            `}
+                          </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                          <button class="button button-secondary button-small" onclick="handleOpenPreferences('${buyer.id}')">
+                            偏好設定
+                          </button>
+                          <button class="button button-small" onclick="handleEditBuyer('${buyer.id}')" style="background: #007aff; color: white;">
+                            Edit
+                          </button>
+                          <button class="button button-danger button-small" onclick="handleDeleteBuyer('${buyer.id}')">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+                ${masterBuyers.length === 0 ? '<p class="text-gray text-center p-3">暫無買家</p>' : ''}
+              </div>
+              
+              <div style="border-top: 1px solid #e5e5ea; padding-top: 1rem;">
+                <h4 style="font-weight: 600; margin-bottom: 0.75rem;">Add New Buyer</h4>
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="Buyer Name"
+                  value="${newBuyerName}"
+                  oninput="newBuyerName = event.target.value"
+                />
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="國家/地區 (如：菲律賓、泰國、馬來西亞、越南、日本、韓國)"
+                  value="${newBuyerCountry}"
+                  oninput="newBuyerCountry = event.target.value"
+                />
+                <textarea
+                  class="input"
+                  placeholder="Buyer Profile (English, 500 words max)"
+                  value="${newBuyerProfile}"
+                  oninput="newBuyerProfile = event.target.value; updateBuyerProfileCount();"
+                  rows="3"
+                  style="resize: vertical; min-height: 80px;"
+                ></textarea>
+                <div class="text-small text-gray" style="margin-bottom: 0.5rem;">
+                  Word Count:<span id="buyer-profile-count">${countEnglishWords(newBuyerProfile)}</span>/500
+                </div>
+                <select
+                  class="select"
+                  value="${newBuyerBlock}"
+                  onchange="newBuyerBlock = event.target.value"
+                >
+                  <option value="morning">上午</option>
+                  <option value="afternoon">下午</option>
+                </select>
+                <button class="button" onclick="handleAddBuyer()" style="width: 100%;">
+                  Add Buyer
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderSellerModal = () => {
+      if (!showSellerModal) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">賣家Master Data Management</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+                ${masterSellers.map(seller => {
+                  const participatingEvents = events.filter(event => 
+                    event.participants.sellers?.some(s => s.id === seller.id)
+                  );
+                  
+                  return `
+                    <div class="p-2 border-bottom">
+                      <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                        <div style="flex: 1;">
+                          <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600;">${seller.name} 🇹🇼</span>
+                          </div>
+                          <div class="text-small text-gray" style="margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #007aff;">簡介：</span>
+                            <span style="color: #1d1d1f; font-style: italic;">${seller.profile || 'No profile information available.'}</span>
+                          </div>
+                          <div class="text-small text-gray">
+                            <span style="font-weight: 600; color: #b8860b;">參與活動：</span>
+                            ${participatingEvents.length > 0 ? `
+                              <div style="margin-top: 0.25rem;">
+                                ${participatingEvents.map(event => `
+                                  <span style="background: #fff8dc; padding: 0.125rem 0.5rem; border-radius: 4px; font-size: 0.75rem; margin-right: 0.5rem; display: inline-block; margin-bottom: 0.25rem;">
+                                    ${event.name} (${formatDate(event.date)})
+                                  </span>
+                                `).join('')}
+                              </div>
+                            ` : `
+                              <span style="color: #86868b;">無參與活動</span>
+                            `}
+                          </div>
+                        </div>
+                        <div style="display: flex; gap: 0.5rem;">
+                          <button class="button button-small" onclick="handleEditSeller('${seller.id}')" style="background: #007aff; color: white;">
+                            Edit
+                          </button>
+                          <button class="button button-danger button-small" onclick="handleDeleteSeller('${seller.id}')">
+                            Delete
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
+                ${masterSellers.length === 0 ? '<p class="text-gray text-center p-3">暫無賣家</p>' : ''}
+              </div>
+              
+              <div style="border-top: 1px solid #e5e5ea; padding-top: 1rem;">
+                <h4 style="font-weight: 600; margin-bottom: 0.75rem;">Add New Seller</h4>
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="公司名稱 (繁體中文，如：台灣科技股份有限公司)"
+                  value="${newSellerName}"
+                  oninput="newSellerName = event.target.value"
+                />
+                <textarea
+                  class="input"
+                  placeholder="Seller Profile (English, 500 words max)"
+                  value="${newSellerProfile}"
+                  oninput="newSellerProfile = event.target.value; updateProfileCount();"
+                  rows="3"
+                  style="resize: vertical; min-height: 80px;"
+                ></textarea>
+                <div class="text-small text-gray" style="margin-bottom: 0.5rem;">
+                  Word Count:<span id="profile-count">${countEnglishWords(newSellerProfile)}</span>/500
+                </div>
+                <button class="button" onclick="handleAddSeller()" style="width: 100%;">
+                  Add Seller
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderEventModal = () => {
+      if (!showEventModal) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+              <h3 class="modal-title">創建媒合活動</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--gray-900);">基本資訊</h4>
+                <input
+                  type="text"
+                  class="input"
+                  placeholder="活動名稱，如：台北國際媒合會"
+                  value="${newEventName}"
+                  oninput="newEventName = event.target.value"
+                />
+                <input
+                  type="date"
+                  class="input"
+                  value="${newEventDate}"
+                  onchange="newEventDate = event.target.value"
+                />
+              </div>
+              
+              <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-weight: 600; margin-bottom: 1rem; color: var(--gray-900);">場次設定</h4>
+                
+                <div class="grid grid-2" style="gap: 1rem; margin-bottom: 1rem;">
+                  <div>
+                    <label class="text-small text-gray mb-1" style="display: block;">場次數量</label>
+                    <input
+                      type="number"
+                      class="input"
+                      min="1"
+                      max="12"
+                      value="${newEventSessionCount}"
+                      oninput="newEventSessionCount = parseInt(event.target.value) || 6"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-small text-gray mb-1" style="display: block;">每場時間（分鐘）</label>
+                    <input
+                      type="number"
+                      class="input"
+                      min="10"
+                      max="120"
+                      value="${newEventSessionDuration}"
+                      oninput="newEventSessionDuration = parseInt(event.target.value) || 30"
+                    />
+                  </div>
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                  <label class="text-small text-gray mb-1" style="display: block;">場次間休息時間（分鐘）</label>
+                  <input
+                    type="number"
+                    class="input"
+                    min="0"
+                    max="30"
+                    value="${newEventBreakDuration}"
+                    oninput="newEventBreakDuration = parseInt(event.target.value) || 5"
+                  />
+                </div>
+                
+                <div class="grid grid-2" style="gap: 1rem;">
+                  <div>
+                    <label class="text-small text-gray mb-1" style="display: block;">Morning Session開始時間</label>
+                    <input
+                      type="time"
+                      class="input"
+                      value="${newEventMorningStart}"
+                      onchange="newEventMorningStart = event.target.value"
+                    />
+                  </div>
+                  <div>
+                    <label class="text-small text-gray mb-1" style="display: block;">Afternoon Session開始時間</label>
+                    <input
+                      type="time"
+                      class="input"
+                      value="${newEventAfternoonStart}"
+                      onchange="newEventAfternoonStart = event.target.value"
+                    />
+                  </div>
+                </div>
+              </div>
+              
+              <div style="background: var(--gray-50); padding: 1rem; border-radius: 8px; margin-bottom: 1.5rem;">
+                <h5 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">📋 預覽時段安排：</h5>
+                <div id="session-preview" style="font-size: 0.875rem; color: var(--gray-700);">
+                  正在計算時段...
+                </div>
+              </div>
+              
+              <button class="button" onclick="handleCreateEvent()" style="width: 100%;">
+                Create Event
+              </button>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderParticipantModal = () => {
+      if (!showParticipantModal || !currentEvent) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+              <h3 class="modal-title">Manage Event Participants</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="grid grid-2">
+                <div>
+                  <div class="select-all-container">
+                    <h4 style="font-weight: 600; margin: 0;">Select Participating Buyers (${currentEvent.participants.buyers?.length || 0} / ${masterBuyers.length})</h4>
+                    <div>
+                      <button class="select-all-btn" onclick="selectAllBuyers()">Select All</button>
+                      <button class="select-all-btn" onclick="deselectAllBuyers()" style="margin-left: 0.25rem;">Deselect All</button>
+                    </div>
+                  </div>
+                  <div class="participant-list">
+                    ${getPaginatedItems(masterBuyers, buyerPage).map(buyer => `
+                      <label class="participant-item">
+                        <input
+                          type="checkbox"
+                          class="participant-checkbox"
+                          ${currentEvent.participants.buyers?.some(b => b.id === buyer.id) ? 'checked' : ''}
+                          onchange="toggleBuyerParticipant('${buyer.id}')"
+                        />
+                        <span class="participant-name">
+                          ${buyer.name} (${buyer.country}, ${buyer.sessionBlock === 'morning' ? 'Morning' : 'Afternoon'})
+                        </span>
+                      </label>
+                    `).join('')}
+                  </div>
+                  ${renderPagination(buyerPage, getTotalPages(masterBuyers), 'changeBuyerPage', 'buyer')}
+                </div>
+
+                <div>
+                  <div class="select-all-container">
+                    <h4 style="font-weight: 600; margin: 0;">Select Participating Sellers (${currentEvent.participants.sellers?.length || 0} / ${masterSellers.length})</h4>
+                    <div>
+                      <button class="select-all-btn" onclick="selectAllSellers()">Select All</button>
+                      <button class="select-all-btn" onclick="deselectAllSellers()" style="margin-left: 0.25rem;">Deselect All</button>
+                    </div>
+                  </div>
+                  <div class="participant-list">
+                    ${getPaginatedItems(masterSellers, sellerPage).map(seller => `
+                      <label class="participant-item">
+                        <input
+                          type="checkbox"
+                          class="participant-checkbox"
+                          ${currentEvent.participants.sellers?.some(s => s.id === seller.id) ? 'checked' : ''}
+                          onchange="toggleSellerParticipant('${seller.id}')"
+                        />
+                        <span class="participant-name">${seller.name} 🇹🇼</span>
+                      </label>
+                    `).join('')}
+                  </div>
+                  ${renderPagination(sellerPage, getTotalPages(masterSellers), 'changeSellerPage', 'seller')}
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem; border-top: 1px solid #e5e5ea; padding-top: 1rem;">
+                <button class="button button-secondary" onclick="closeModal()">Cancel</button>
+                <button class="button" onclick="saveParticipants()">Save Participants</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderPreferenceModal = () => {
+      if (!showPreferenceModal) return '';
+
+      const buyer = masterBuyers.find(b => b.id === selectedBuyerForPref);
+      if (!buyer) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 800px;">
+            <div class="modal-header">
+              <h3 class="modal-title">Set Buyer Preferences</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="bg-info p-2 rounded mb-4">
+                <p style="font-weight: 600; color: #0c5460;">
+                  為 <strong>${buyer.name}</strong> 設定偏好賣家
+                </p>
+                <p class="text-small" style="color: #0c5460; margin-top: 0.25rem;">
+                  ℹ️ 智能排程將優先安排主要偏好賣家，當主要偏好已滿或衝突時，再安排備用偏好賣家。
+                </p>
+              </div>
+              
+              <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem;">主要偏好 (前6) - 優先安排</h4>
+                <div class="grid grid-3">
+                  ${Array(NUM_PRIMARY_PREFERRED_SELLERS).fill(0).map((_, i) => `
+                    <div>
+                      <label class="text-small text-gray mb-1" style="display: block;">主要 ${i + 1}</label>
+                      <select
+                        class="select"
+                        onchange="updatePreference(${i}, event.target.value)"
+                      >
+                        <option value="" ${(currentPreferences[i] || '') === '' ? 'selected' : ''}>-- 選擇賣家 --</option>
+                        ${masterSellers.map(seller => `
+                          <option value="${seller.id}" ${currentPreferences[i] === seller.id ? 'selected' : ''}>${seller.name}</option>
+                        `).join('')}
+                      </select>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div style="margin-bottom: 1.5rem;">
+                <h4 style="font-weight: 600; margin-bottom: 0.5rem;">備用偏好 (後4) - 主要安排完後的備選</h4>
+                <p class="text-small text-gray mb-2">當主要偏好已無法安排時，系統將從這裡選擇合適的賣家。</p>
+                <div class="grid grid-4">
+                  ${Array(NUM_BACKUP_PREFERRED_SELLERS).fill(0).map((_, i) => `
+                    <div>
+                      <label class="text-small text-gray mb-1" style="display: block;">備用 ${i + 1}</label>
+                      <select
+                        class="select"
+                        onchange="updatePreference(${NUM_PRIMARY_PREFERRED_SELLERS + i}, event.target.value)"
+                      >
+                        <option value="" ${(currentPreferences[NUM_PRIMARY_PREFERRED_SELLERS + i] || '') === '' ? 'selected' : ''}>-- 選擇賣家 --</option>
+                        ${masterSellers.map(seller => `
+                          <option value="${seller.id}" ${currentPreferences[NUM_PRIMARY_PREFERRED_SELLERS + i] === seller.id ? 'selected' : ''}>${seller.name}</option>
+                        `).join('')}
+                      </select>
+                    </div>
+                  `).join('')}
+                </div>
+              </div>
+
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e5ea; padding-top: 1rem;">
+                <button class="button button-secondary" onclick="closeModal()">Cancel</button>
+                <button class="button" onclick="handleSavePreferences()">Save Preferences</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    // Pagination functions
+    const getPaginatedItems = (items, page, itemsPerPage = ITEMS_PER_PAGE) => {
+      const startIndex = (page - 1) * itemsPerPage;
+      const endIndex = startIndex + itemsPerPage;
+      return items.slice(startIndex, endIndex);
+    };
+
+    const getTotalPages = (items, itemsPerPage = ITEMS_PER_PAGE) => {
+      return Math.ceil(items.length / itemsPerPage);
+    };
+
+    const changeBuyerPage = (newPage) => {
+      buyerPage = newPage;
+      render();
+    };
+
+    const changeSellerPage = (newPage) => {
+      sellerPage = newPage;
+      render();
+    };
+
+    const renderPagination = (currentPage, totalPages, changePageFunc, prefix) => {
+      if (totalPages <= 1) return '';
+      
+      const pages = [];
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(`
+          <button 
+            class="pagination-btn ${i === currentPage ? 'active' : ''}" 
+            onclick="${changePageFunc}(${i})"
+          >
+            ${i}
+          </button>
+        `);
+      }
+      
+      return `
+        <div class="pagination">
+          <button 
+            class="pagination-btn" 
+            onclick="${changePageFunc}(${Math.max(1, currentPage - 1)})"
+            ${currentPage === 1 ? 'disabled' : ''}
+          >
+            ‹
+          </button>
+          ${pages.join('')}
+          <button 
+            class="pagination-btn" 
+            onclick="${changePageFunc}(${Math.min(totalPages, currentPage + 1)})"
+            ${currentPage === totalPages ? 'disabled' : ''}
+          >
+            ›
+          </button>
+        </div>
+      `;
+    };
+
+    // Participant management functions
+    window.toggleBuyerParticipant = (buyerId) => {
+      const buyer = masterBuyers.find(b => b.id === buyerId);
+      if (!buyer) return;
+
+      const existingIndex = currentEvent.participants.buyers.findIndex(b => b.id === buyerId);
+      if (existingIndex >= 0) {
+        currentEvent.participants.buyers.splice(existingIndex, 1);
+      } else {
+        currentEvent.participants.buyers.push(buyer);
+      }
+    };
+
+    window.toggleSellerParticipant = (sellerId) => {
+      const seller = masterSellers.find(s => s.id === sellerId);
+      if (!seller) return;
+
+      const existingIndex = currentEvent.participants.sellers.findIndex(s => s.id === sellerId);
+      if (existingIndex >= 0) {
+        currentEvent.participants.sellers.splice(existingIndex, 1);
+      } else {
+        currentEvent.participants.sellers.push(seller);
+      }
+    };
+
+    window.selectAllBuyers = () => {
+      currentEvent.participants.buyers = [...masterBuyers];
+      render();
+    };
+
+    window.deselectAllBuyers = () => {
+      currentEvent.participants.buyers = [];
+      render();
+    };
+
+    window.selectAllSellers = () => {
+      currentEvent.participants.sellers = [...masterSellers];
+      render();
+    };
+
+    window.deselectAllSellers = () => {
+      currentEvent.participants.sellers = [];
+      render();
+    };
+
+    window.saveParticipants = () => {
+      const allSessions = calculateSessions(currentEvent.sessionSettings, 'morning')
+        .concat(calculateSessions(currentEvent.sessionSettings, 'afternoon'));
+      
+      currentEvent.schedule = generateInitialSchedule(currentEvent.participants.buyers, allSessions);
+      
+      events = events.map(e => e.id === currentEvent.id ? currentEvent : e);
+      showParticipantModal = false;
+      saveData();
+      alert('參與者更新成功！現在可以點擊「智能排程」進行自動排程。');
+      render();
+    };
+
+    window.updatePreference = (index, value) => {
+      currentPreferences[index] = value;
+      render();
+    };
+
+    window.updateProfileCount = () => {
+      const countElement = document.getElementById('profile-count');
+      if (countElement) {
+        const wordCount = countEnglishWords(newSellerProfile);
+        countElement.textContent = wordCount;
+        if (wordCount > 500) {
+          countElement.style.color = '#ff3b30';
+        } else {
+          countElement.style.color = '#86868b';
+        }
+      }
+    };
+
+    window.updateBuyerProfileCount = () => {
+      const countElement = document.getElementById('buyer-profile-count');
+      if (countElement) {
+        const wordCount = countEnglishWords(newBuyerProfile);
+        countElement.textContent = wordCount;
+        if (wordCount > 500) {
+          countElement.style.color = '#ff3b30';
+        } else {
+          countElement.style.color = '#86868b';
+        }
+      }
+    };
+
+    window.updateEditBuyerProfileCount = () => {
+      const countElement = document.getElementById('edit-buyer-profile-count');
+      if (countElement) {
+        const wordCount = countEnglishWords(editBuyerProfile);
+        countElement.textContent = wordCount;
+        if (wordCount > 500) {
+          countElement.style.color = '#ff3b30';
+        } else {
+          countElement.style.color = '#86868b';
+        }
+      }
+    };
+
+    window.updateEditSellerProfileCount = () => {
+      const countElement = document.getElementById('edit-seller-profile-count');
+      if (countElement) {
+        const wordCount = countEnglishWords(editSellerProfile);
+        countElement.textContent = wordCount;
+        if (wordCount > 500) {
+          countElement.style.color = '#ff3b30';
+        } else {
+          countElement.style.color = '#86868b';
+        }
+      }
+    };
+
+    const renderEditBuyerModal = () => {
+      if (!showEditBuyerModal) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+              <h3 class="modal-title">Edit Buyer Information</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">買家名稱 *</label>
+                <input
+                  type="text"
+                  class="input"
+                  value="${editBuyerName}"
+                  oninput="editBuyerName = event.target.value"
+                  placeholder="請輸入買家名稱"
+                  style="margin-bottom: 0.75rem;"
+                />
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">買家國家 *</label>
+                <input
+                  type="text"
+                  class="input"
+                  value="${editBuyerCountry}"
+                  oninput="editBuyerCountry = event.target.value"
+                  placeholder="請輸入買家國家"
+                  style="margin-bottom: 0.75rem;"
+                />
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">時段偏好</label>
+                <select class="select" value="${editBuyerBlock}" onchange="editBuyerBlock = event.target.value">
+                  <option value="morning" ${editBuyerBlock === 'morning' ? 'selected' : ''}>上午</option>
+                  <option value="afternoon" ${editBuyerBlock === 'afternoon' ? 'selected' : ''}>下午</option>
+                </select>
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <label class="text-small text-gray">買家簡介 (英文，500字以內)</label>
+                  <span id="edit-buyer-profile-count" class="text-small text-gray">${countEnglishWords(editBuyerProfile)}</span>
+                </div>
+                <textarea
+                  class="textarea"
+                  value="${editBuyerProfile}"
+                  oninput="editBuyerProfile = event.target.value; updateEditBuyerProfileCount()"
+                  placeholder="請輸入買家簡介（英文）"
+                  style="min-height: 100px;"
+                >${editBuyerProfile}</textarea>
+              </div>
+              
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e5ea; padding-top: 1rem;">
+                <button class="button button-secondary" onclick="closeModal()">Cancel</button>
+                <button class="button" onclick="handleSaveEditBuyer()">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderEditSellerModal = () => {
+      if (!showEditSellerModal) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+              <h3 class="modal-title">Edit Seller Information</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div style="margin-bottom: 1rem;">
+                <label class="text-small text-gray mb-1" style="display: block;">公司名稱 *</label>
+                <input
+                  type="text"
+                  class="input"
+                  value="${editSellerName}"
+                  oninput="editSellerName = event.target.value"
+                  placeholder="請輸入公司名稱（繁體中文）"
+                  style="margin-bottom: 0.75rem;"
+                />
+              </div>
+              
+              <div style="margin-bottom: 1rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                  <label class="text-small text-gray">賣家簡介 (英文，500字以內)</label>
+                  <span id="edit-seller-profile-count" class="text-small text-gray">${countEnglishWords(editSellerProfile)}</span>
+                </div>
+                <textarea
+                  class="textarea"
+                  value="${editSellerProfile}"
+                  oninput="editSellerProfile = event.target.value; updateEditSellerProfileCount()"
+                  placeholder="請輸入賣家簡介（英文）"
+                  style="min-height: 100px;"
+                >${editSellerProfile}</textarea>
+              </div>
+              
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e5ea; padding-top: 1rem;">
+                <button class="button button-secondary" onclick="closeModal()">Cancel</button>
+                <button class="button" onclick="handleSaveEditSeller()">Save</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    const renderImportModal = () => {
+      if (!showImportModal) return '';
+
+      return `
+        <div class="modal">
+          <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+              <h3 class="modal-title">匯入資料</h3>
+              <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+              <div class="grid grid-2" style="gap: 2rem;">
+                <div>
+                  <h4 style="font-weight: 600; margin-bottom: 1rem; color: #1d1d1f;">匯入買家資料</h4>
+                  <p class="text-small text-gray mb-3">支援CSV格式，Excel文件請先轉換為CSV</p>
+                  
+                  <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h5 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">📋 格式說明：</h5>
+                    <div class="text-small" style="font-family: monospace; background: var(--white); padding: 0.75rem; border-radius: 4px; border-left: 3px solid var(--gray-400);">
+                      <strong>CSV格式：</strong><br>
+                      名稱, 國家, 簡介, 時段<br>
+                      John Smith, USA, Tech expert, morning<br>
+                      Mary Johnson, UK, Marketing lead, afternoon
+                    </div>
+                    <div class="text-small text-gray mt-2" style="background: var(--gray-50); padding: 0.5rem; border-radius: 4px; border-left: 3px solid var(--gray-500);">
+                      <strong>📝 填寫要求：</strong><br>
+                      • <strong>必填：</strong>名稱、國家<br>
+                      • <strong>時段：</strong>morning/afternoon 或 上午/下午<br>
+                      • <strong>簡介：</strong>最多500個英文字<br>
+                      • <strong>提示：</strong>可Delete模板中的示例資料
+                    </div>
+                  </div>
+                  
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button class="button button-secondary" onclick="downloadBuyerTemplate()" style="flex: 1;">
+                      📥 下載模板
+                    </button>
+                    <button class="button" onclick="handleImportBuyersCSV()" style="flex: 1;">
+                      📁 匯入檔案
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 style="font-weight: 600; margin-bottom: 1rem; color: #1d1d1f;">匯入賣家資料</h4>
+                  <p class="text-small text-gray mb-3">支援CSV格式，Excel文件請先轉換為CSV</p>
+                  
+                  <div style="background: var(--gray-100); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h5 style="font-weight: 600; margin-bottom: 0.5rem; font-size: 0.9rem;">📋 格式說明：</h5>
+                    <div class="text-small" style="font-family: monospace; background: var(--white); padding: 0.75rem; border-radius: 4px; border-left: 3px solid var(--gray-400);">
+                      <strong>CSV格式：</strong><br>
+                      名稱, 簡介<br>
+                      Apple Inc, Technology company<br>
+                      Microsoft Corp, Software solutions
+                    </div>
+                    <div class="text-small text-gray mt-2" style="background: var(--gray-50); padding: 0.5rem; border-radius: 4px; border-left: 3px solid var(--gray-500);">
+                      <strong>📝 填寫要求：</strong><br>
+                      • <strong>必填：</strong>名稱<br>
+                      • <strong>簡介：</strong>最多500個英文字<br>
+                      • <strong>提示：</strong>可Delete模板中的示例資料
+                    </div>
+                  </div>
+                  
+                  <div style="display: flex; gap: 0.5rem;">
+                    <button class="button button-secondary" onclick="downloadSellerTemplate()" style="flex: 1;">
+                      📥 下載模板
+                    </button>
+                    <button class="button" onclick="handleImportSellersCSV()" style="flex: 1;">
+                      📁 匯入檔案
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              <div style="border-top: 1px solid #e5e5ea; padding-top: 1.5rem; margin-top: 2rem;">
+                <h4 style="font-weight: 600; margin-bottom: 1rem; color: #1d1d1f;">系統備份還原</h4>
+                <p class="text-small text-gray mb-3">匯入完整的系統備份檔案（JSON格式）</p>
+                <button class="button button-secondary" onclick="handleImportData()" style="width: 200px;">
+                  💾 匯入系統備份
+                </button>
+              </div>
+              
+              <div style="display: flex; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid #e5e5ea; padding-top: 1rem; margin-top: 1.5rem;">
+                <button class="button button-secondary" onclick="closeModal()">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    };
+
+    // Main render function
+    const render = () => {
+      const app = document.getElementById('app');
+      let content = '';
+      
+      if (currentView === 'search') {
+        content = renderSearch();
+      } else if (currentView === 'admin') {
+        content = renderAdmin();
+      }
+      
+      content += renderLoginModal();
+      content += renderPasswordModal();
+      content += renderBuyerModal();
+      content += renderSellerModal();
+      content += renderEventModal();
+      content += renderParticipantModal();
+      content += renderPreferenceModal();
+      content += renderEditBuyerModal();
+      content += renderEditSellerModal();
+      content += renderImportModal();
+      
+      app.innerHTML = content;
+    };
+
+    // Initialize app
+    const init = () => {
+      // Check for existing auth
+      const authStatus = sessionStorage.getItem('adminAuthenticated');
+      if (authStatus === 'true') {
+        isAuthenticated = true;
+      }
+
+      loadData();
+      if (masterBuyers.length === 0 || masterSellers.length === 0) {
+        initializeData();
+      }
+      render();
+    };
+
+    // Make functions globally available
+    window.goToAdmin = goToAdmin;
+    window.goToSearch = goToSearch;
+    window.handleLogin = handleLogin;
+    window.handleLogout = handleLogout;
+    window.closeModal = closeModal;
+    window.handleSearchInput = handleSearchInput;
+    window.handleSearchKeyup = handleSearchKeyup;
+    window.selectSeller = selectSeller;
+    window.handleAddBuyer = handleAddBuyer;
+    window.handleDeleteBuyer = handleDeleteBuyer;
+    window.handleAddSeller = handleAddSeller;
+    window.handleDeleteSeller = handleDeleteSeller;
+    window.handleCreateEvent = handleCreateEvent;
+    window.handleDeleteEvent = handleDeleteEvent;
+    window.handleSelectEvent = handleSelectEvent;
+    window.handleAutoScheduleEvent = handleAutoScheduleEvent;
+    window.handleOpenPreferences = handleOpenPreferences;
+    window.handleSavePreferences = handleSavePreferences;
+    window.handleExportData = handleExportData;
+    window.handleImportData = handleImportData;
+    window.handleClearTestData = handleClearTestData;
+    window.exportScheduleToCSV = exportScheduleToCSV;
+    window.handleRestorePreferences = handleRestorePreferences;
+    window.handleEditBuyer = handleEditBuyer;
+    window.handleSaveEditBuyer = handleSaveEditBuyer;
+    window.handleEditSeller = handleEditSeller;
+    window.handleSaveEditSeller = handleSaveEditSeller;
+    window.handleImportBuyersCSV = handleImportBuyersCSV;
+    window.handleImportSellersCSV = handleImportSellersCSV;
+    window.downloadBuyerTemplate = downloadBuyerTemplate;
+    window.downloadSellerTemplate = downloadSellerTemplate;
+    window.render = render;
+
+    // Start the app
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>

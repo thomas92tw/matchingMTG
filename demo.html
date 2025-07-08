@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能會議調度器 - 演示</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div class="min-h-screen text-gray-800 flex flex-col items-center py-8 px-4">
+    <header class="mb-8 text-center">
+      <h1 class="text-5xl font-extrabold text-gray-800">
+        Intelligent Meeting Scheduler
+      </h1>
+      <p class="mt-2 text-gray-600">
+        賣家會議時間查詢系統
+      </p>
+    </header>
+
+    <div class="w-full max-w-4xl bg-white p-8 rounded-lg shadow-lg">
+      <div class="mb-6 text-center">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">功能展示</h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          
+          <!-- 使用者查詢介面 -->
+          <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-xl font-semibold mb-4 text-blue-600">
+              🔍 使用者查詢介面
+            </h3>
+            <div class="space-y-3">
+              <div class="bg-gray-50 p-4 rounded">
+                <h4 class="font-medium">功能特色：</h4>
+                <ul class="text-sm text-gray-600 mt-2 space-y-1">
+                  <li>• 賣家姓名搜尋</li>
+                  <li>• 自動完成建議</li>
+                  <li>• 會議時間顯示</li>
+                  <li>• 買家資訊查看</li>
+                </ul>
+              </div>
+              <div class="bg-blue-50 p-3 rounded">
+                <p class="text-sm text-blue-700">
+                  <strong>網址：</strong> /search (預設首頁)
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <!-- 管理員介面 -->
+          <div class="border border-gray-200 rounded-lg p-6">
+            <h3 class="text-xl font-semibold mb-4 text-red-600">
+              🔐 管理員介面
+            </h3>
+            <div class="space-y-3">
+              <div class="bg-gray-50 p-4 rounded">
+                <h4 class="font-medium">管理功能：</h4>
+                <ul class="text-sm text-gray-600 mt-2 space-y-1">
+                  <li>• 買家/賣家管理</li>
+                  <li>• 偏好設定</li>
+                  <li>• 智能排程</li>
+                  <li>• 拖拽編輯</li>
+                  <li>• CSV 匯入/匯出</li>
+                </ul>
+              </div>
+              <div class="bg-red-50 p-3 rounded">
+                <p class="text-sm text-red-700">
+                  <strong>網址：</strong> /admin<br>
+                  <strong>密碼：</strong> admin123
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 架構說明 -->
+      <div class="mt-8 bg-green-50 p-6 rounded-lg">
+        <h3 class="text-lg font-semibold text-green-800 mb-3">
+          🏗️ 路由分離架構
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+          <div class="bg-white p-3 rounded border">
+            <h4 class="font-medium text-gray-800">路由保護</h4>
+            <p class="text-gray-600 mt-1">管理員介面需要密碼驗證</p>
+          </div>
+          <div class="bg-white p-3 rounded border">
+            <h4 class="font-medium text-gray-800">狀態隔離</h4>
+            <p class="text-gray-600 mt-1">兩個介面獨立運作</p>
+          </div>
+          <div class="bg-white p-3 rounded border">
+            <h4 class="font-medium text-gray-800">會話管理</h4>
+            <p class="text-gray-600 mt-1">使用 sessionStorage</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 測試說明 -->
+      <div class="mt-8 bg-yellow-50 p-6 rounded-lg">
+        <h3 class="text-lg font-semibold text-yellow-800 mb-3">
+          🧪 如何測試完整功能
+        </h3>
+        <div class="space-y-2 text-sm text-yellow-700">
+          <p><strong>1. 啟動開發服務器：</strong> npm run dev</p>
+          <p><strong>2. 訪問使用者介面：</strong> http://localhost:5173/search</p>
+          <p><strong>3. 訪問管理員介面：</strong> http://localhost:5173/admin</p>
+          <p><strong>4. 測試路由保護：</strong> 嘗試不同的 URL 路徑</p>
+        </div>
+      </div>
+
+      <!-- 技術規格 -->
+      <div class="mt-8 bg-gray-50 p-6 rounded-lg">
+        <h3 class="text-lg font-semibold text-gray-800 mb-3">
+          ⚙️ 技術規格
+        </h3>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+          <div>
+            <h4 class="font-medium">前端框架</h4>
+            <p class="text-gray-600">React 19.1.0</p>
+          </div>
+          <div>
+            <h4 class="font-medium">路由管理</h4>
+            <p class="text-gray-600">React Router</p>
+          </div>
+          <div>
+            <h4 class="font-medium">樣式系統</h4>
+            <p class="text-gray-600">Tailwind CSS</p>
+          </div>
+          <div>
+            <h4 class="font-medium">構建工具</h4>
+            <p class="text-gray-600">Vite</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <footer class="mt-12 text-center text-gray-500 text-sm">
+      <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+    </footer>
+  </div>
+</body>
+</html>

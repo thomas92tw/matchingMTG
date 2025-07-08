@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能會議調度器 - 完整版</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .draggable { cursor: grab; }
+    .dragging { opacity: 0.7; cursor: grabbing; }
+    .conflict { background-color: #fee2e2; border: 2px solid #dc2626; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, createContext, useContext } = React;
+
+    // Constants
+    const APP_TITLE = "Intelligent Meeting Scheduler";
+    const MAX_BUYERS_PER_BLOCK = 20;
+    const NUM_PRIMARY_PREFERRED_SELLERS = 6;
+    const NUM_BACKUP_PREFERRED_SELLERS = 4;
+    const TOTAL_PREFERRED_SELLERS = NUM_PRIMARY_PREFERRED_SELLERS + NUM_BACKUP_PREFERRED_SELLERS;
+
+    const INITIAL_SESSION_SETTINGS = {
+      count: 6,
+      durationMinutes: 30,
+      breakMinutes: 5,
+      morningStartTime: "09:30",
+      afternoonStartTime: "13:30",
+    };
+
+    const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Auth Context
+    const AuthContext = createContext();
+
+    const AuthProvider = ({ children }) => {
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [currentView, setCurrentView] = useState('search');
+
+      useEffect(() => {
+        const authStatus = sessionStorage.getItem('adminAuthenticated');
+        if (authStatus === 'true') {
+          setIsAuthenticated(true);
+        }
+      }, []);
+
+      const login = (password) => {
+        if (password === 'admin123') {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('adminAuthenticated', 'true');
+          setCurrentView('admin');
+          return true;
+        }
+        return false;
+      };
+
+      const logout = () => {
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('adminAuthenticated');
+        setCurrentView('search');
+      };
+
+      const goToAdmin = () => {
+        if (isAuthenticated) {
+          setCurrentView('admin');
+        } else {
+          setCurrentView('login');
+        }
+      };
+
+      const goToSearch = () => {
+        setCurrentView('search');
+      };
+
+      return (
+        <AuthContext.Provider value={{ 
+          isAuthenticated, 
+          login, 
+          logout, 
+          currentView, 
+          goToAdmin, 
+          goToSearch, 
+          setCurrentView 
+        }}>
+          {children}
+        </AuthContext.Provider>
+      );
+    };
+
+    const useAuth = () => {
+      const context = useContext(AuthContext);
+      if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+      }
+      return context;
+    };
+
+    // Utility Functions
+    const parseTimeToMinutes = (time) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const calculateSessions = (settings, blockType) => {
+      const sessions = [];
+      const startTimeStr = blockType === 'morning' ? settings.morningStartTime : settings.afternoonStartTime;
+      let currentTime = parseTimeToMinutes(startTimeStr);
+      const prefix = blockType === 'morning' ? 'M' : 'A';
+
+      for (let i = 0; i < settings.count; i++) {
+        const startTimeMinutes = currentTime;
+        const endTimeMinutes = currentTime + settings.durationMinutes;
+
+        const formatTime = (totalMinutes) => {
+          const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+          const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+          return `${hours}:${minutes}`;
+        };
+
+        sessions.push({
+          id: `${prefix}_s${i + 1}`,
+          name: `${prefix}-Session ${i + 1}`,
+          startTime: formatTime(startTimeMinutes),
+          endTime: formatTime(endTimeMinutes),
+          block: blockType,
+        });
+
+        currentTime = endTimeMinutes + settings.breakMinutes;
+      }
+      return sessions;
+    };
+
+    const generateInitialSchedule = (buyers, allSessions) => {
+      const schedule = {};
+      buyers.forEach(buyer => {
+        schedule[buyer.id] = {};
+        allSessions.forEach(session => {
+          schedule[buyer.id][session.id] = null;
+        });
+      });
+      return schedule;
+    };
+
+    // Smart Auto-Schedule Algorithm
+    const performAutoSchedule = (buyers, allSessions, buyerPreferredSellers, masterSellers) => {
+      const newSchedule = generateInitialSchedule(buyers, allSessions);
+      const sessionOccupancy = {};
+      allSessions.forEach(s => sessionOccupancy[s.id] = new Set());
+
+      const shuffledBuyers = [...buyers].sort(() => Math.random() - 0.5);
+
+      shuffledBuyers.forEach(buyer => {
+        const buyerBlockSessions = allSessions.filter(s => s.block === buyer.sessionBlock);
+        if (buyerBlockSessions.length === 0) return;
+        
+        const numSlotsForBuyer = buyerBlockSessions.length;
+        const allPrefsForBuyer = (buyerPreferredSellers[buyer.id] || []).slice(0, TOTAL_PREFERRED_SELLERS);
+        const primaryPrefs = allPrefsForBuyer.slice(0, NUM_PRIMARY_PREFERRED_SELLERS).filter(id => id !== '');
+        const backupPrefs = allPrefsForBuyer.slice(NUM_PRIMARY_PREFERRED_SELLERS).filter(id => id !== '');
+
+        if (primaryPrefs.length === 0 && backupPrefs.length === 0) return;
+        
+        let availablePrimarySellers = [...primaryPrefs].sort(() => Math.random() - 0.5);
+        let availableBackupSellers = [...backupPrefs].sort(() => Math.random() - 0.5);
+        const assignedSellersForThisBuyer = new Set();
+        let assignedSlotsCount = 0;
+
+        const shuffledBuyerBlockSessions = [...buyerBlockSessions].sort(() => Math.random() - 0.5);
+
+        // Primary preferences first
+        for (const session of shuffledBuyerBlockSessions) {
+          if (assignedSlotsCount >= numSlotsForBuyer) break;
+
+          for (let i = 0; i < availablePrimarySellers.length; i++) {
+            const sellerId = availablePrimarySellers[i];
+            if (!sessionOccupancy[session.id].has(sellerId) && !assignedSellersForThisBuyer.has(sellerId)) {
+              newSchedule[buyer.id][session.id] = sellerId;
+              sessionOccupancy[session.id].add(sellerId);
+              assignedSellersForThisBuyer.add(sellerId);
+              availablePrimarySellers.splice(i, 1);
+              assignedSlotsCount++;
+              break;
+            }
+          }
+        }
+
+        // Backup preferences
+        if (assignedSlotsCount < numSlotsForBuyer) {
+          for (const session of shuffledBuyerBlockSessions) {
+            if (assignedSlotsCount >= numSlotsForBuyer) break;
+            if (newSchedule[buyer.id][session.id] !== null) continue;
+
+            for (let i = 0; i < availableBackupSellers.length; i++) {
+              const sellerId = availableBackupSellers[i];
+              if (!sessionOccupancy[session.id].has(sellerId) && !assignedSellersForThisBuyer.has(sellerId)) {
+                newSchedule[buyer.id][session.id] = sellerId;
+                sessionOccupancy[session.id].add(sellerId);
+                assignedSellersForThisBuyer.add(sellerId);
+                availableBackupSellers.splice(i, 1);
+                assignedSlotsCount++;
+                break;
+              }
+            }
+          }
+        }
+      });
+
+      return newSchedule;
+    };
+
+    // Export to CSV
+    const exportScheduleToCSV = (schedule, buyers, sellers, allSessions) => {
+      const sellerMap = new Map(sellers.map(s => [s.id, s.name]));
+      
+      let csvContent = "data:text/csv;charset=utf-8,";
+
+      const sortedSessions = [...allSessions].sort((a,b) => {
+        if (a.block !== b.block) {
+          return a.block === 'morning' ? -1 : 1;
+        }
+        return a.startTime.localeCompare(b.startTime);
+      });
+
+      const header = ["Buyer Name", "Buyer Country", "Session Block", ...sortedSessions.map(s => `${s.name} (${s.startTime}-${s.endTime})`)];
+      csvContent += header.join(",") + "\\r\\n";
+
+      buyers.forEach(buyer => {
+        const row = [buyer.name, buyer.country, buyer.sessionBlock];
+        sortedSessions.forEach(session => {
+          const sellerId = schedule[buyer.id]?.[session.id];
+          const sellerName = sellerId ? sellerMap.get(sellerId) || "Unknown Seller" : "";
+          const sanitizedSellerName = `"${sellerName.replace(/"/g, '""')}"`;
+          row.push(sanitizedSellerName);
+        });
+        csvContent += row.join(",") + "\\r\\n";
+      });
+
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement("a");
+      link.setAttribute("href", encodedUri);
+      link.setAttribute("download", "meeting_schedule.csv");
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    };
+
+    // Components
+    const Button = ({ children, onClick, variant = 'primary', size = 'md', className = '', disabled = false, ...props }) => {
+      const baseStyles = "rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+      const variants = {
+        primary: "bg-gray-800 text-white hover:bg-gray-700 focus:ring-gray-500",
+        secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500",
+        danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+        success: "bg-green-600 text-white hover:bg-green-700 focus:ring-green-500"
+      };
+      const sizes = {
+        sm: "px-2 py-1 text-sm",
+        md: "px-4 py-2",
+        lg: "px-6 py-3 text-lg"
+      };
+      
+      return (
+        <button
+          onClick={onClick}
+          disabled={disabled}
+          className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`}
+          {...props}
+        >
+          {children}
+        </button>
+      );
+    };
+
+    const TextInput = ({ value, onChange, placeholder, type = 'text', className = '', label = '', ...props }) => {
+      return (
+        <div className="w-full">
+          {label && (
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              {label}
+            </label>
+          )}
+          <input
+            type={type}
+            value={value}
+            onChange={onChange}
+            placeholder={placeholder}
+            className={`block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm sm:leading-6 ${className}`}
+            {...props}
+          />
+        </div>
+      );
+    };
+
+    const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
+      if (!isOpen) return null;
+
+      const sizes = {
+        sm: 'max-w-md',
+        md: 'max-w-lg',
+        lg: 'max-w-2xl',
+        xl: 'max-w-4xl'
+      };
+
+      return (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className={`bg-white rounded-lg shadow-xl ${sizes[size]} w-full max-h-[90vh] overflow-hidden`}>
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-semibold">{title}</h3>
+              <button
+                onClick={onClose}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[70vh]">
+              {children}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Login Component
+    const AdminLogin = () => {
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const { login, goToSearch } = useAuth();
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (login(password)) {
+          // Successfully logged in
+        } else {
+          setError('密碼錯誤，請重試');
+          setPassword('');
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4">
+          <div className="max-w-md w-full space-y-8">
+            <div>
+              <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                管理員登入
+              </h2>
+              <p className="mt-2 text-center text-sm text-gray-600">
+                請輸入管理員密碼以存取管理介面
+              </p>
+            </div>
+            <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+              <div>
+                <TextInput
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="管理員密碼"
+                  required
+                />
+              </div>
+
+              {error && (
+                <div className="rounded-md bg-red-50 p-4">
+                  <div className="text-sm text-red-700">{error}</div>
+                </div>
+              )}
+
+              <div>
+                <Button type="submit" className="w-full">
+                  登入管理介面
+                </Button>
+              </div>
+              
+              <div className="text-center">
+                <button 
+                  type="button"
+                  onClick={goToSearch}
+                  className="text-sm text-gray-600 hover:text-gray-900 underline"
+                >
+                  回到使用者查詢介面
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      );
+    };
+
+    // Search Page Component
+    const UserSearchPage = () => {
+      const [searchTerm, setSearchTerm] = useState('');
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+      const { goToAdmin } = useAuth();
+
+      // Get data from localStorage or use defaults
+      const getBuyers = () => {
+        const stored = localStorage.getItem('app-buyers');
+        return stored ? JSON.parse(stored) : [];
+      };
+
+      const getSellers = () => {
+        const stored = localStorage.getItem('app-sellers');
+        return stored ? JSON.parse(stored) : [];
+      };
+
+      const getSchedule = () => {
+        const stored = localStorage.getItem('app-schedule');
+        return stored ? JSON.parse(stored) : {};
+      };
+
+      const getSessionSettings = () => {
+        const stored = localStorage.getItem('app-session-settings');
+        return stored ? JSON.parse(stored) : INITIAL_SESSION_SETTINGS;
+      };
+
+      const buyers = getBuyers();
+      const sellers = getSellers();
+      const schedule = getSchedule();
+      const sessionSettings = getSessionSettings();
+
+      const allSessions = useMemo(() => {
+        const morning = calculateSessions(sessionSettings, 'morning');
+        const afternoon = calculateSessions(sessionSettings, 'afternoon');
+        return [...morning, ...afternoon].sort((a,b) => {
+          if (a.block !== b.block) {
+            return a.block === 'morning' ? -1 : 1;
+          }
+          return a.startTime.localeCompare(b.startTime);
+        });
+      }, [sessionSettings]);
+
+      const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        
+        if (value.trim()) {
+          const filtered = sellers.filter(seller =>
+            seller.name.toLowerCase().includes(value.toLowerCase())
+          );
+          setSuggestions(filtered);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      };
+
+      const selectSeller = (seller) => {
+        setSearchTerm(seller.name);
+        setShowSuggestions(false);
+      };
+
+      const getSellerMeetings = () => {
+        const selectedSeller = sellers.find(s => s.name === searchTerm);
+        if (!selectedSeller) return [];
+
+        const meetings = [];
+        Object.entries(schedule).forEach(([buyerId, sessions]) => {
+          Object.entries(sessions).forEach(([sessionId, sellerId]) => {
+            if (sellerId === selectedSeller.id) {
+              const buyer = buyers.find(b => b.id === buyerId);
+              const session = allSessions.find(s => s.id === sessionId);
+              if (buyer && session) {
+                meetings.push({ buyer, session });
+              }
+            }
+          });
+        });
+        return meetings.sort((a, b) => {
+          if (a.session.block !== b.session.block) {
+            return a.session.block === 'morning' ? -1 : 1;
+          }
+          return a.session.startTime.localeCompare(b.session.startTime);
+        });
+      };
+
+      const meetings = getSellerMeetings();
+
+      return (
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
+          <header className="mb-8 text-center">
+            <h1 className="text-5xl font-extrabold text-gray-800">
+              {APP_TITLE}
+            </h1>
+            <p className="mt-2 text-gray-600">
+              賣家會議時間查詢系統
+            </p>
+            <div className="mt-4">
+              <button 
+                onClick={goToAdmin}
+                className="text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                管理員入口
+              </button>
+            </div>
+          </header>
+
+          <main className="w-full max-w-4xl">
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">賣家會議查詢</h2>
+              
+              <div className="relative mb-6">
+                <TextInput
+                  value={searchTerm}
+                  onChange={handleSearchChange}
+                  placeholder="請輸入賣家姓名進行搜尋..."
+                  className="text-lg py-3"
+                />
+                
+                {showSuggestions && suggestions.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 mt-1">
+                    {suggestions.map(seller => (
+                      <button
+                        key={seller.id}
+                        onClick={() => selectSeller(seller)}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100"
+                      >
+                        {seller.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {meetings.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold mb-4">
+                    {searchTerm} 的會議安排
+                  </h3>
+                  <div className="grid gap-4">
+                    {meetings.map((meeting, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h4 className="font-medium text-gray-800">
+                              {meeting.session.name}
+                            </h4>
+                            <p className="text-sm text-gray-600">
+                              時間：{meeting.session.startTime} - {meeting.session.endTime}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              時段：{meeting.session.block === 'morning' ? '上午' : '下午'}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-gray-800">
+                              {meeting.buyer.name}
+                            </p>
+                            <p className="text-sm text-gray-600">
+                              {meeting.buyer.country}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {searchTerm && meetings.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">未找到相關會議安排</p>
+                </div>
+              )}
+
+              {!searchTerm && sellers.length > 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">請輸入賣家姓名開始搜尋</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    可搜尋的賣家：{sellers.slice(0, 5).map(s => s.name).join('、')}
+                    {sellers.length > 5 && ` 等 ${sellers.length} 位賣家`}
+                  </p>
+                </div>
+              )}
+
+              {sellers.length === 0 && (
+                <div className="text-center py-8">
+                  <p className="text-gray-500">暫無賣家資料</p>
+                  <p className="text-sm text-gray-400 mt-2">
+                    請聯繫管理員添加賣家資料
+                  </p>
+                </div>
+              )}
+            </div>
+          </main>
+
+          <footer className="mt-12 text-center text-gray-500 text-sm">
+            <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+          </footer>
+        </div>
+      );
+    };
+
+    // Admin Panel Component with full functionality
+    const AdminPanel = () => {
+      const { logout, goToSearch } = useAuth();
+      
+      // Load data from localStorage or initialize
+      const [buyers, setBuyers] = useState(() => {
+        const stored = localStorage.getItem('app-buyers');
+        return stored ? JSON.parse(stored) : [];
+      });
+      
+      const [sellers, setSellers] = useState(() => {
+        const stored = localStorage.getItem('app-sellers');
+        return stored ? JSON.parse(stored) : [];
+      });
+      
+      const [buyerPreferredSellers, setBuyerPreferredSellers] = useState(() => {
+        const stored = localStorage.getItem('app-buyer-preferences');
+        return stored ? JSON.parse(stored) : {};
+      });
+      
+      const [sessionSettings, setSessionSettings] = useState(() => {
+        const stored = localStorage.getItem('app-session-settings');
+        return stored ? JSON.parse(stored) : INITIAL_SESSION_SETTINGS;
+      });
+
+      const allSessions = useMemo(() => {
+        const morning = calculateSessions(sessionSettings, 'morning');
+        const afternoon = calculateSessions(sessionSettings, 'afternoon');
+        return [...morning, ...afternoon].sort((a,b) => {
+          if (a.block !== b.block) {
+            return a.block === 'morning' ? -1 : 1;
+          }
+          return a.startTime.localeCompare(b.startTime);
+        });
+      }, [sessionSettings]);
+
+      const [schedule, setSchedule] = useState(() => {
+        const stored = localStorage.getItem('app-schedule');
+        if (stored) {
+          return JSON.parse(stored);
+        }
+        return generateInitialSchedule(buyers, allSessions);
+      });
+
+      // Modals
+      const [showBuyerModal, setShowBuyerModal] = useState(false);
+      const [showSellerModal, setShowSellerModal] = useState(false);
+      const [showPreferenceModal, setShowPreferenceModal] = useState(false);
+
+      // Forms
+      const [newBuyerName, setNewBuyerName] = useState('');
+      const [newBuyerCountry, setNewBuyerCountry] = useState('');
+      const [newBuyerBlock, setNewBuyerBlock] = useState('morning');
+      const [newSellerName, setNewSellerName] = useState('');
+
+      // Preferences
+      const [selectedBuyerForPref, setSelectedBuyerForPref] = useState('');
+      const [currentPreferences, setCurrentPreferences] = useState(Array(TOTAL_PREFERRED_SELLERS).fill(''));
+
+      // Save to localStorage
+      useEffect(() => {
+        localStorage.setItem('app-buyers', JSON.stringify(buyers));
+      }, [buyers]);
+
+      useEffect(() => {
+        localStorage.setItem('app-sellers', JSON.stringify(sellers));
+      }, [sellers]);
+
+      useEffect(() => {
+        localStorage.setItem('app-schedule', JSON.stringify(schedule));
+      }, [schedule]);
+
+      useEffect(() => {
+        localStorage.setItem('app-buyer-preferences', JSON.stringify(buyerPreferredSellers));
+      }, [buyerPreferredSellers]);
+
+      useEffect(() => {
+        localStorage.setItem('app-session-settings', JSON.stringify(sessionSettings));
+      }, [sessionSettings]);
+
+      // Update schedule when buyers or sessions change
+      useEffect(() => {
+        setSchedule(currentSchedule => {
+          const newInitial = generateInitialSchedule(buyers, allSessions);
+          buyers.forEach(b => {
+            if (!newInitial[b.id]) newInitial[b.id] = {};
+            allSessions.forEach(s => {
+              if (currentSchedule[b.id] && currentSchedule[b.id][s.id] !== undefined) {
+                newInitial[b.id][s.id] = currentSchedule[b.id][s.id];
+              }
+            });
+          });
+          Object.keys(newInitial).forEach(buyerId => {
+            if (!buyers.find(b => b.id === buyerId)) {
+              delete newInitial[buyerId];
+            }
+          });
+          return newInitial;
+        });
+      }, [buyers, allSessions]);
+
+      const handleAddBuyer = () => {
+        if (!newBuyerName.trim() || !newBuyerCountry.trim()) {
+          alert("買家名稱和國家都是必填項目");
+          return;
+        }
+
+        const buyersInBlock = buyers.filter(b => b.sessionBlock === newBuyerBlock);
+        if (buyersInBlock.length >= MAX_BUYERS_PER_BLOCK) {
+          alert(`${newBuyerBlock === 'morning' ? '上午' : '下午'}時段最多只能有 ${MAX_BUYERS_PER_BLOCK} 位買家`);
+          return;
+        }
+
+        const newBuyer = {
+          id: generateId(),
+          name: newBuyerName.trim(),
+          country: newBuyerCountry.trim(),
+          sessionBlock: newBuyerBlock
+        };
+
+        setBuyers(prev => [...prev, newBuyer]);
+        setNewBuyerName('');
+        setNewBuyerCountry('');
+        alert('買家添加成功！');
+      };
+
+      const handleDeleteBuyer = (id) => {
+        if (confirm('確定要刪除這位買家嗎？')) {
+          setBuyers(prev => prev.filter(b => b.id !== id));
+          setBuyerPreferredSellers(prev => {
+            const updated = {...prev};
+            delete updated[id];
+            return updated;
+          });
+          setSchedule(prev => {
+            const updated = {...prev};
+            delete updated[id];
+            return updated;
+          });
+        }
+      };
+
+      const handleAddSeller = () => {
+        if (!newSellerName.trim()) {
+          alert("賣家名稱不能為空");
+          return;
+        }
+
+        if (sellers.find(s => s.name === newSellerName.trim())) {
+          alert("該賣家已存在");
+          return;
+        }
+
+        const newSeller = {
+          id: generateId(),
+          name: newSellerName.trim()
+        };
+
+        setSellers(prev => [...prev, newSeller]);
+        setNewSellerName('');
+        alert('賣家添加成功！');
+      };
+
+      const handleDeleteSeller = (id) => {
+        if (confirm('確定要刪除這位賣家嗎？')) {
+          setSellers(prev => prev.filter(s => s.id !== id));
+          
+          // Remove from preferences
+          setBuyerPreferredSellers(prev => {
+            const updated = {...prev};
+            Object.keys(updated).forEach(buyerId => {
+              updated[buyerId] = updated[buyerId].map(sellerId => sellerId === id ? '' : sellerId);
+            });
+            return updated;
+          });
+
+          // Remove from schedule
+          setSchedule(prev => {
+            const updated = JSON.parse(JSON.stringify(prev));
+            Object.keys(updated).forEach(buyerId => {
+              Object.keys(updated[buyerId]).forEach(sessionId => {
+                if (updated[buyerId][sessionId] === id) {
+                  updated[buyerId][sessionId] = null;
+                }
+              });
+            });
+            return updated;
+          });
+        }
+      };
+
+      const handleOpenPreferences = (buyerId) => {
+        setSelectedBuyerForPref(buyerId);
+        const existingPrefs = buyerPreferredSellers[buyerId] || [];
+        const paddedPrefs = existingPrefs.concat(Array(Math.max(0, TOTAL_PREFERRED_SELLERS - existingPrefs.length)).fill(''));
+        setCurrentPreferences(paddedPrefs);
+        setShowPreferenceModal(true);
+      };
+
+      const handleSavePreferences = () => {
+        const filledPrefs = currentPreferences.filter(p => p !== '');
+        const uniquePrefs = new Set(filledPrefs);
+        
+        if (uniquePrefs.size !== filledPrefs.length) {
+          alert("偏好賣家不能重複");
+          return;
+        }
+
+        setBuyerPreferredSellers(prev => ({
+          ...prev,
+          [selectedBuyerForPref]: [...currentPreferences]
+        }));
+
+        setShowPreferenceModal(false);
+        alert('偏好設定保存成功！');
+      };
+
+      const handleAutoSchedule = () => {
+        if (buyers.length === 0) {
+          alert("請先添加買家");
+          return;
+        }
+
+        if (sellers.length === 0) {
+          alert("請先添加賣家");
+          return;
+        }
+
+        const newSchedule = performAutoSchedule(buyers, allSessions, buyerPreferredSellers, sellers);
+        setSchedule(newSchedule);
+        alert('智能排程完成！');
+      };
+
+      const handleExportCSV = () => {
+        if (buyers.length === 0) {
+          alert("沒有資料可以匯出");
+          return;
+        }
+        exportScheduleToCSV(schedule, buyers, sellers, allSessions);
+      };
+
+      const getSessionConflicts = () => {
+        const conflicts = {};
+        allSessions.forEach(session => {
+          const sellersInSession = {};
+          buyers.forEach(buyer => {
+            if (buyer.sessionBlock === session.block) {
+              const sellerId = schedule[buyer.id]?.[session.id];
+              if (sellerId) {
+                sellersInSession[sellerId] = (sellersInSession[sellerId] || 0) + 1;
+              }
+            }
+          });
+          conflicts[session.id] = Object.entries(sellersInSession)
+            .filter(([, count]) => count > 1)
+            .map(([sellerId]) => sellerId);
+        });
+        return conflicts;
+      };
+
+      const conflicts = getSessionConflicts();
+      const hasConflicts = Object.values(conflicts).some(c => c.length > 0);
+
+      return (
+        <div className="min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4">
+          <header className="mb-8 text-center w-full max-w-7xl">
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-4xl font-extrabold text-gray-800 flex-1">
+                {APP_TITLE} - 管理員介面
+              </h1>
+              <Button onClick={logout} variant="secondary">
+                登出
+              </Button>
+            </div>
+            <div className="text-center">
+              <button 
+                onClick={goToSearch}
+                className="text-sm text-gray-600 hover:text-gray-900 underline"
+              >
+                前往使用者查詢介面
+              </button>
+            </div>
+          </header>
+
+          <main className="w-full max-w-7xl space-y-6">
+            {/* Control Panel */}
+            <div className="bg-white rounded-lg shadow-lg p-6">
+              <h2 className="text-2xl font-bold text-gray-800 mb-6">管理控制台</h2>
+              
+              {/* Statistics */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-blue-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-blue-800">買家總數</h3>
+                  <p className="text-2xl font-bold text-blue-600">{buyers.length}</p>
+                  <p className="text-sm text-blue-600">
+                    上午: {buyers.filter(b => b.sessionBlock === 'morning').length} | 
+                    下午: {buyers.filter(b => b.sessionBlock === 'afternoon').length}
+                  </p>
+                </div>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-green-800">賣家總數</h3>
+                  <p className="text-2xl font-bold text-green-600">{sellers.length}</p>
+                </div>
+                <div className="bg-purple-50 p-4 rounded-lg">
+                  <h3 className="font-semibold text-purple-800">會議場次</h3>
+                  <p className="text-2xl font-bold text-purple-600">{allSessions.length}</p>
+                  <p className="text-sm text-purple-600">
+                    {sessionSettings.count} 場次/時段
+                  </p>
+                </div>
+                <div className={`p-4 rounded-lg ${hasConflicts ? 'bg-red-50' : 'bg-yellow-50'}`}>
+                  <h3 className={`font-semibold ${hasConflicts ? 'text-red-800' : 'text-yellow-800'}`}>
+                    衝突狀態
+                  </h3>
+                  <p className={`text-2xl font-bold ${hasConflicts ? 'text-red-600' : 'text-yellow-600'}`}>
+                    {hasConflicts ? '有衝突' : '無衝突'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-3 mb-6">
+                <Button onClick={() => setShowBuyerModal(true)} variant="primary">
+                  管理買家
+                </Button>
+                <Button onClick={() => setShowSellerModal(true)} variant="primary">
+                  管理賣家
+                </Button>
+                <Button onClick={handleAutoSchedule} variant="success">
+                  智能排程
+                </Button>
+                <Button onClick={handleExportCSV} variant="secondary">
+                  匯出 CSV
+                </Button>
+              </div>
+
+              {/* Session Settings */}
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-semibold mb-3">會議設定</h3>
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+                  <TextInput
+                    type="number"
+                    value={sessionSettings.count}
+                    onChange={(e) => setSessionSettings(prev => ({...prev, count: parseInt(e.target.value) || 1}))}
+                    label="每時段場次"
+                    min="1"
+                  />
+                  <TextInput
+                    type="number"
+                    value={sessionSettings.durationMinutes}
+                    onChange={(e) => setSessionSettings(prev => ({...prev, durationMinutes: parseInt(e.target.value) || 30}))}
+                    label="會議時長(分鐘)"
+                    min="1"
+                  />
+                  <TextInput
+                    type="number"
+                    value={sessionSettings.breakMinutes}
+                    onChange={(e) => setSessionSettings(prev => ({...prev, breakMinutes: parseInt(e.target.value) || 5}))}
+                    label="休息時間(分鐘)"
+                    min="0"
+                  />
+                  <TextInput
+                    type="time"
+                    value={sessionSettings.morningStartTime}
+                    onChange={(e) => setSessionSettings(prev => ({...prev, morningStartTime: e.target.value}))}
+                    label="上午開始時間"
+                  />
+                  <TextInput
+                    type="time"
+                    value={sessionSettings.afternoonStartTime}
+                    onChange={(e) => setSessionSettings(prev => ({...prev, afternoonStartTime: e.target.value}))}
+                    label="下午開始時間"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Schedule Grid */}
+            {buyers.length > 0 && allSessions.length > 0 && (
+              <div className="bg-white rounded-lg shadow-lg p-6">
+                <h3 className="text-xl font-semibold mb-4">會議排程表</h3>
+                
+                {hasConflicts && (
+                  <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded">
+                    <p className="text-red-700 font-medium">⚠️ 發現排程衝突，請檢查並調整</p>
+                  </div>
+                )}
+
+                <div className="overflow-x-auto">
+                  <table className="min-w-full border border-gray-300">
+                    <thead className="bg-gray-200">
+                      <tr>
+                        <th className="p-2 border border-gray-300 text-left text-sm font-semibold sticky left-0 bg-gray-200">
+                          買家 (國家, 時段)
+                        </th>
+                        {allSessions.map(session => (
+                          <th key={session.id} className="p-2 border border-gray-300 text-center text-xs font-semibold min-w-[120px]">
+                            {session.name}<br/>
+                            ({session.startTime}-{session.endTime})
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {buyers.map(buyer => (
+                        <tr key={buyer.id} className="even:bg-gray-50">
+                          <td className="p-2 border border-gray-300 text-xs font-medium sticky left-0 bg-white even:bg-gray-50">
+                            <div>
+                              {buyer.name}
+                              <br/>
+                              ({buyer.country}, {buyer.sessionBlock === 'morning' ? '上午' : '下午'})
+                            </div>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              className="mt-1 text-xs"
+                              onClick={() => handleOpenPreferences(buyer.id)}
+                            >
+                              設定偏好
+                            </Button>
+                          </td>
+                          {allSessions.map(session => {
+                            const sellerId = schedule[buyer.id]?.[session.id];
+                            const seller = sellers.find(s => s.id === sellerId);
+                            const isConflicting = conflicts[session.id]?.includes(sellerId);
+                            const isBuyerSession = buyer.sessionBlock === session.block;
+                            
+                            return (
+                              <td 
+                                key={session.id}
+                                className={`p-1 border border-gray-300 text-center text-xs min-w-[120px] h-16 ${
+                                  !isBuyerSession ? 'bg-gray-100' : 
+                                  isConflicting ? 'bg-red-200' : ''
+                                }`}
+                              >
+                                {isBuyerSession ? (
+                                  seller ? (
+                                    <div className={`p-1 h-full flex items-center justify-center rounded ${
+                                      isConflicting ? 'border-2 border-red-500' : ''
+                                    }`}>
+                                      <span className="truncate">{seller.name}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="h-full flex items-center justify-center text-gray-400">
+                                      空
+                                    </div>
+                                  )
+                                ) : (
+                                  <div className="h-full flex items-center justify-center text-gray-300">
+                                    -
+                                  </div>
+                                )}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </main>
+
+          {/* Buyer Modal */}
+          <Modal isOpen={showBuyerModal} onClose={() => setShowBuyerModal(false)} title="買家管理" size="lg">
+            <div className="space-y-4">
+              <div className="max-h-60 overflow-y-auto">
+                {buyers.map(buyer => (
+                  <div key={buyer.id} className="flex justify-between items-center p-3 border-b">
+                    <div>
+                      <span className="font-medium">{buyer.name}</span>
+                      <span className="text-sm text-gray-600 ml-2">
+                        ({buyer.country}, {buyer.sessionBlock === 'morning' ? '上午' : '下午'})
+                      </span>
+                    </div>
+                    <Button onClick={() => handleDeleteBuyer(buyer.id)} variant="danger" size="sm">
+                      刪除
+                    </Button>
+                  </div>
+                ))}
+                {buyers.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">暫無買家</p>
+                )}
+              </div>
+              
+              <div className="border-t pt-4 space-y-3">
+                <h4 className="font-medium">添加新買家</h4>
+                <TextInput
+                  value={newBuyerName}
+                  onChange={(e) => setNewBuyerName(e.target.value)}
+                  placeholder="買家名稱"
+                  label="買家名稱"
+                />
+                <TextInput
+                  value={newBuyerCountry}
+                  onChange={(e) => setNewBuyerCountry(e.target.value)}
+                  placeholder="國家/地區"
+                  label="國家/地區"
+                />
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">時段</label>
+                  <select
+                    value={newBuyerBlock}
+                    onChange={(e) => setNewBuyerBlock(e.target.value)}
+                    className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm"
+                  >
+                    <option value="morning">上午</option>
+                    <option value="afternoon">下午</option>
+                  </select>
+                </div>
+                <Button onClick={handleAddBuyer} className="w-full">
+                  添加買家
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          {/* Seller Modal */}
+          <Modal isOpen={showSellerModal} onClose={() => setShowSellerModal(false)} title="賣家管理" size="lg">
+            <div className="space-y-4">
+              <div className="max-h-60 overflow-y-auto">
+                {sellers.map(seller => (
+                  <div key={seller.id} className="flex justify-between items-center p-3 border-b">
+                    <span className="font-medium">{seller.name}</span>
+                    <Button onClick={() => handleDeleteSeller(seller.id)} variant="danger" size="sm">
+                      刪除
+                    </Button>
+                  </div>
+                ))}
+                {sellers.length === 0 && (
+                  <p className="text-gray-500 text-center py-4">暫無賣家</p>
+                )}
+              </div>
+              
+              <div className="border-t pt-4 space-y-3">
+                <h4 className="font-medium">添加新賣家</h4>
+                <TextInput
+                  value={newSellerName}
+                  onChange={(e) => setNewSellerName(e.target.value)}
+                  placeholder="賣家名稱"
+                  label="賣家名稱"
+                />
+                <Button onClick={handleAddSeller} className="w-full">
+                  添加賣家
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          {/* Preferences Modal */}
+          <Modal isOpen={showPreferenceModal} onClose={() => setShowPreferenceModal(false)} title="設定買家偏好" size="xl">
+            <div className="space-y-4">
+              <p className="text-gray-600">
+                為 <strong>{buyers.find(b => b.id === selectedBuyerForPref)?.name}</strong> 設定偏好賣家
+              </p>
+              
+              <div>
+                <h4 className="font-medium mb-2">主要偏好 (前6位)</h4>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  {Array(NUM_PRIMARY_PREFERRED_SELLERS).fill(0).map((_, i) => (
+                    <div key={i}>
+                      <label className="block text-xs text-gray-500 mb-1">主要 {i + 1}</label>
+                      <select
+                        value={currentPreferences[i] || ''}
+                        onChange={(e) => {
+                          const newPrefs = [...currentPreferences];
+                          newPrefs[i] = e.target.value;
+                          setCurrentPreferences(newPrefs);
+                        }}
+                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm"
+                      >
+                        <option value="">-- 選擇賣家 --</option>
+                        {sellers.map(seller => (
+                          <option key={seller.id} value={seller.id}>{seller.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <h4 className="font-medium mb-2">備用偏好 (後4位)</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  {Array(NUM_BACKUP_PREFERRED_SELLERS).fill(0).map((_, i) => (
+                    <div key={i}>
+                      <label className="block text-xs text-gray-500 mb-1">備用 {i + 1}</label>
+                      <select
+                        value={currentPreferences[NUM_PRIMARY_PREFERRED_SELLERS + i] || ''}
+                        onChange={(e) => {
+                          const newPrefs = [...currentPreferences];
+                          newPrefs[NUM_PRIMARY_PREFERRED_SELLERS + i] = e.target.value;
+                          setCurrentPreferences(newPrefs);
+                        }}
+                        className="block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm"
+                      >
+                        <option value="">-- 選擇賣家 --</option>
+                        {sellers.map(seller => (
+                          <option key={seller.id} value={seller.id}>{seller.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <Button variant="secondary" onClick={() => setShowPreferenceModal(false)}>
+                  取消
+                </Button>
+                <Button onClick={handleSavePreferences}>
+                  保存偏好
+                </Button>
+              </div>
+            </div>
+          </Modal>
+
+          <footer className="mt-12 text-center text-gray-500 text-sm">
+            <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+          </footer>
+        </div>
+      );
+    };
+
+    // Main App Component
+    const App = () => {
+      const { currentView } = useAuth();
+
+      const renderView = () => {
+        switch (currentView) {
+          case 'admin':
+            return <AdminPanel />;
+          case 'login':
+            return <AdminLogin />;
+          case 'search':
+          default:
+            return <UserSearchPage />;
+        }
+      };
+
+      return (
+        <div>
+          {renderView()}
+        </div>
+      );
+    };
+
+    // Render the app
+    const AppWithProvider = () => (
+      <AuthProvider>
+        <App />
+      </AuthProvider>
+    );
+
+    ReactDOM.render(<AppWithProvider />, document.getElementById('root'));
+  </script>
+</body>
+</html>

@@ -1,0 +1,718 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能會議調度器 - 本地版</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #f5f5f5;
+      color: #333;
+      line-height: 1.6;
+    }
+    
+    .container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    
+    .header {
+      text-align: center;
+      margin-bottom: 2rem;
+    }
+    
+    .title {
+      font-size: 3rem;
+      font-weight: bold;
+      color: #1a1a1a;
+      margin-bottom: 0.5rem;
+    }
+    
+    .subtitle {
+      color: #666;
+      margin-bottom: 1rem;
+    }
+    
+    .nav-link {
+      color: #666;
+      text-decoration: underline;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    
+    .nav-link:hover {
+      color: #333;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      padding: 2rem;
+      width: 100%;
+      max-width: 800px;
+      margin-bottom: 2rem;
+    }
+    
+    .card-title {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 1.5rem;
+      color: #1a1a1a;
+    }
+    
+    .input {
+      width: 100%;
+      padding: 0.75rem;
+      border: 2px solid #e0e0e0;
+      border-radius: 8px;
+      font-size: 1rem;
+      margin-bottom: 1rem;
+      transition: border-color 0.2s;
+    }
+    
+    .input:focus {
+      outline: none;
+      border-color: #ffd700;
+    }
+    
+    .button {
+      background: #ffd700;
+      color: #000;
+      border: none;
+      padding: 0.75rem 1.5rem;
+      border-radius: 8px;
+      font-size: 1rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    
+    .button:hover {
+      background: #ffed4e;
+    }
+    
+    .button-secondary {
+      background: #e0e0e0;
+      color: #333;
+    }
+    
+    .button-secondary:hover {
+      background: #d0d0d0;
+    }
+    
+    .button-danger {
+      background: #dc2626;
+      color: white;
+    }
+    
+    .button-danger:hover {
+      background: #b91c1c;
+    }
+    
+    .hidden {
+      display: none;
+    }
+    
+    .suggestions {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+      z-index: 10;
+      margin-top: 4px;
+    }
+    
+    .suggestion-item {
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-bottom: 1px solid #f0f0f0;
+    }
+    
+    .suggestion-item:hover {
+      background: #f8f8f8;
+    }
+    
+    .suggestion-item:last-child {
+      border-bottom: none;
+    }
+    
+    .meeting-card {
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      padding: 1rem;
+      margin-bottom: 1rem;
+      background: #f8f8f8;
+    }
+    
+    .meeting-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 0.5rem;
+    }
+    
+    .event-name {
+      font-weight: 600;
+      color: #ffd700;
+      font-size: 1.1rem;
+    }
+    
+    .date-text {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .meeting-details {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+      font-size: 0.9rem;
+      color: #666;
+    }
+    
+    .detail-label {
+      font-weight: 500;
+      color: #333;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      padding: 1rem;
+    }
+    
+    .modal-content {
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      width: 100%;
+      max-width: 500px;
+      max-height: 90vh;
+      overflow: hidden;
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem;
+      border-bottom: 1px solid #e0e0e0;
+    }
+    
+    .modal-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    
+    .modal-close {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: #999;
+      cursor: pointer;
+    }
+    
+    .modal-close:hover {
+      color: #666;
+    }
+    
+    .modal-body {
+      padding: 1rem;
+      overflow-y: auto;
+      max-height: 70vh;
+    }
+    
+    .relative {
+      position: relative;
+    }
+    
+    .text-center {
+      text-align: center;
+    }
+    
+    .text-gray {
+      color: #666;
+    }
+    
+    .text-yellow {
+      color: #ffd700;
+    }
+    
+    .py-8 {
+      padding-top: 2rem;
+      padding-bottom: 2rem;
+    }
+    
+    .mb-4 {
+      margin-bottom: 1rem;
+    }
+    
+    .footer {
+      margin-top: 3rem;
+      text-align: center;
+      color: #999;
+      font-size: 0.9rem;
+    }
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+
+  <script>
+    // Simple state management
+    let currentView = 'search';
+    let isAuthenticated = false;
+    let searchTerm = '';
+    let showSuggestions = false;
+    let showLoginModal = false;
+    let loginPassword = '';
+    let loginError = '';
+
+    // Sample data
+    const sampleSellers = [
+      { id: '1', name: '台灣科技A' },
+      { id: '2', name: '台灣製造B' },
+      { id: '3', name: '創新企業C' },
+      { id: '4', name: '精密工業D' },
+      { id: '5', name: '綠能科技E' }
+    ];
+
+    const sampleEvents = [
+      {
+        id: '1',
+        name: '台北國際媒合會',
+        date: '2025-07-15'
+      },
+      {
+        id: '2',
+        name: '台中產業交流會',
+        date: '2025-07-20'
+      }
+    ];
+
+    const sampleMeetings = [
+      {
+        event: sampleEvents[0],
+        seller: sampleSellers[0],
+        buyer: { name: '菲律賓科技公司', country: '菲律賓' },
+        session: { name: 'M-Session 1', startTime: '09:30', endTime: '10:00', block: 'morning' }
+      },
+      {
+        event: sampleEvents[0],
+        seller: sampleSellers[0],
+        buyer: { name: '泰國製造企業', country: '泰國' },
+        session: { name: 'M-Session 2', startTime: '10:05', endTime: '10:35', block: 'morning' }
+      },
+      {
+        event: sampleEvents[1],
+        seller: sampleSellers[0],
+        buyer: { name: '馬來西亞貿易公司', country: '馬來西亞' },
+        session: { name: 'A-Session 1', startTime: '13:30', endTime: '14:00', block: 'afternoon' }
+      }
+    ];
+
+    // Utility functions
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('zh-TW', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        weekday: 'long'
+      });
+    }
+
+    function getSellerMeetings(sellerName) {
+      const seller = sampleSellers.find(s => s.name === sellerName);
+      if (!seller) return [];
+      
+      return sampleMeetings.filter(m => m.seller.id === seller.id);
+    }
+
+    function getSuggestions(term) {
+      if (!term.trim()) return [];
+      return sampleSellers.filter(seller =>
+        seller.name.toLowerCase().includes(term.toLowerCase())
+      );
+    }
+
+    // Event handlers
+    function handleSearchChange(e) {
+      searchTerm = e.target.value;
+      const suggestions = getSuggestions(searchTerm);
+      showSuggestions = suggestions.length > 0 && searchTerm.trim();
+      render();
+    }
+
+    function selectSeller(seller) {
+      searchTerm = seller.name;
+      showSuggestions = false;
+      render();
+    }
+
+    function goToAdmin() {
+      if (isAuthenticated) {
+        currentView = 'admin';
+      } else {
+        showLoginModal = true;
+      }
+      render();
+    }
+
+    function goToSearch() {
+      currentView = 'search';
+      render();
+    }
+
+    function handleLogin() {
+      if (loginPassword === 'admin123') {
+        isAuthenticated = true;
+        showLoginModal = false;
+        currentView = 'admin';
+        loginError = '';
+      } else {
+        loginError = '密碼錯誤，請重試';
+      }
+      loginPassword = '';
+      render();
+    }
+
+    function handleLogout() {
+      isAuthenticated = false;
+      currentView = 'search';
+      render();
+    }
+
+    function closeModal() {
+      showLoginModal = false;
+      loginError = '';
+      loginPassword = '';
+      render();
+    }
+
+    // Render functions
+    function renderSearch() {
+      const meetings = getSellerMeetings(searchTerm);
+      const suggestions = getSuggestions(searchTerm);
+
+      return `
+        <div class="container">
+          <header class="header">
+            <h1 class="title">Intelligent Meeting Scheduler</h1>
+            <p class="subtitle">賣家會議時間查詢系統</p>
+            <span class="nav-link" onclick="goToAdmin()">管理員入口</span>
+          </header>
+
+          <main style="width: 100%; max-width: 1000px;">
+            <div class="card">
+              <h2 class="card-title">賣家會議查詢</h2>
+              
+              <div class="relative">
+                <input 
+                  type="text" 
+                  class="input" 
+                  placeholder="請輸入賣家姓名進行搜尋..."
+                  value="${searchTerm}"
+                  oninput="handleSearchChange(event)"
+                  style="font-size: 1.125rem; padding: 1rem;"
+                />
+                
+                ${showSuggestions ? `
+                  <div class="suggestions">
+                    ${suggestions.map(seller => `
+                      <div class="suggestion-item" onclick="selectSeller({id: '${seller.id}', name: '${seller.name}'})">
+                        ${seller.name}
+                      </div>
+                    `).join('')}
+                  </div>
+                ` : ''}
+              </div>
+
+              ${meetings.length > 0 ? `
+                <div style="margin-top: 1.5rem;">
+                  <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">
+                    ${searchTerm} 的會議安排
+                  </h3>
+                  <div>
+                    ${meetings.map(meeting => `
+                      <div class="meeting-card">
+                        <div class="meeting-header">
+                          <div style="flex: 1;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 0.5rem;">
+                              <h4 class="event-name">📅 ${meeting.event.name}</h4>
+                              <span class="date-text">${formatDate(meeting.event.date)}</span>
+                            </div>
+                            <div class="meeting-details">
+                              <div>
+                                <span class="detail-label">時間：</span>${meeting.session.startTime} - ${meeting.session.endTime}
+                              </div>
+                              <div>
+                                <span class="detail-label">買家：</span>${meeting.buyer.name}
+                              </div>
+                              <div>
+                                <span class="detail-label">時段：</span>${meeting.session.block === 'morning' ? '上午場' : '下午場'}
+                              </div>
+                              <div>
+                                <span class="detail-label">國家：</span>${meeting.buyer.country}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              ` : searchTerm ? `
+                <div class="text-center py-8">
+                  <p class="text-gray">未找到相關會議安排</p>
+                  <p style="font-size: 0.875rem; color: #999; margin-top: 0.5rem;">
+                    該賣家可能未參與任何媒合活動
+                  </p>
+                </div>
+              ` : `
+                <div class="text-center py-8">
+                  <p class="text-gray">請輸入賣家姓名開始搜尋</p>
+                  <p style="font-size: 0.875rem; color: #999; margin-top: 0.5rem;">
+                    可搜尋的賣家：${sampleSellers.slice(0, 3).map(s => s.name).join('、')} 等
+                  </p>
+                </div>
+              `}
+            </div>
+
+            <div class="card">
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">近期媒合活動</h3>
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                ${sampleEvents.map(event => `
+                  <div style="border: 1px solid #e0e0e0; border-radius: 8px; padding: 0.75rem;">
+                    <h4 style="font-weight: 500; color: #1a1a1a;">${event.name}</h4>
+                    <p style="font-size: 0.875rem; color: #666;">${formatDate(event.date)}</p>
+                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #999; margin-top: 0.5rem;">
+                      <span>買家: 12位</span>
+                      <span>賣家: 8位</span>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </main>
+
+          <footer class="footer">
+            <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+          </footer>
+        </div>
+      `;
+    }
+
+    function renderAdmin() {
+      return `
+        <div class="container">
+          <header class="header">
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 1200px; margin-bottom: 1.5rem;">
+              <h1 style="font-size: 2.5rem; font-weight: bold; color: #1a1a1a; flex: 1;">
+                Intelligent Meeting Scheduler - 管理員介面
+              </h1>
+              <button class="button button-secondary" onclick="handleLogout()">
+                登出
+              </button>
+            </div>
+            <span class="nav-link" onclick="goToSearch()">前往使用者查詢介面</span>
+          </header>
+
+          <main style="width: 100%; max-width: 1200px;">
+            <div class="card">
+              <h2 class="card-title">主資料管理</h2>
+              
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; margin-bottom: 1.5rem;">
+                <div style="background: #fff8dc; padding: 1rem; border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="font-weight: 600; color: #b8860b;">買家主資料庫</h3>
+                    <button class="button" style="font-size: 0.875rem; padding: 0.5rem 1rem;">管理買家</button>
+                  </div>
+                  <p style="font-size: 1.5rem; font-weight: bold; color: #b8860b;">${sampleSellers.length} 位</p>
+                  <div style="font-size: 0.875rem; color: #b8860b; margin-top: 0.5rem;">
+                    🇵🇭 菲律賓: 3 | 🇹🇭 泰國: 2 | 🇲🇾 馬來西亞: 2
+                  </div>
+                </div>
+                
+                <div style="background: #fff8dc; padding: 1rem; border-radius: 8px;">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                    <h3 style="font-weight: 600; color: #b8860b;">賣家主資料庫 🇹🇼</h3>
+                    <button class="button" style="font-size: 0.875rem; padding: 0.5rem 1rem;">管理賣家</button>
+                  </div>
+                  <p style="font-size: 1.5rem; font-weight: bold; color: #b8860b;">${sampleSellers.length} 位</p>
+                  <p style="font-size: 0.875rem; color: #b8860b;">台灣賣家</p>
+                </div>
+              </div>
+
+              <div style="display: flex; gap: 0.75rem;">
+                <button class="button">➕ 創建媒合活動</button>
+              </div>
+            </div>
+
+            <div class="card">
+              <h2 style="font-size: 1.25rem; font-weight: bold; margin-bottom: 1rem;">媒合活動管理</h2>
+              
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                ${sampleEvents.map(event => `
+                  <div style="border: 2px solid #ffd700; border-radius: 8px; padding: 1rem; cursor: pointer; transition: all 0.2s; background: #fff8dc;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem;">
+                      <h3 style="font-weight: 600; color: #1a1a1a;">${event.name}</h3>
+                      <button class="button button-danger" style="font-size: 0.75rem; padding: 0.25rem 0.5rem;">✕</button>
+                    </div>
+                    <p style="font-size: 0.875rem; color: #666; margin-bottom: 0.75rem;">${formatDate(event.date)}</p>
+                    <div style="font-size: 0.75rem; color: #999;">
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>買家:</span>
+                        <span>12 位</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>賣家:</span>
+                        <span>8 位</span>
+                      </div>
+                      <div style="display: flex; justify-content: space-between;">
+                        <span>排程:</span>
+                        <span>已完成</span>
+                      </div>
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+
+            <div class="card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.25rem; font-weight: bold;">
+                  當前活動：台北國際媒合會
+                </h2>
+                <div style="display: flex; gap: 0.5rem;">
+                  <button class="button">管理參與者</button>
+                  <button class="button">智能排程</button>
+                  <button class="button button-secondary">匯出 CSV</button>
+                </div>
+              </div>
+
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                <div style="background: #f8f8f8; padding: 0.75rem; border-radius: 6px;">
+                  <h4 style="font-weight: 500; color: #666;">活動日期</h4>
+                  <p style="font-size: 0.875rem; color: #666;">${formatDate('2025-07-15')}</p>
+                </div>
+                <div style="background: #fff8dc; padding: 0.75rem; border-radius: 6px;">
+                  <h4 style="font-weight: 500; color: #b8860b;">參與買家</h4>
+                  <p style="font-size: 1.125rem; font-weight: bold; color: #b8860b;">12 位</p>
+                </div>
+                <div style="background: #fff8dc; padding: 0.75rem; border-radius: 6px;">
+                  <h4 style="font-weight: 500; color: #b8860b;">參與賣家</h4>
+                  <p style="font-size: 1.125rem; font-weight: bold; color: #b8860b;">8 位</p>
+                </div>
+                <div style="background: #fff8dc; padding: 0.75rem; border-radius: 6px;">
+                  <h4 style="font-weight: 500; color: #b8860b;">排程狀態</h4>
+                  <p style="font-size: 1.125rem; font-weight: bold; color: #b8860b;">無衝突</p>
+                </div>
+              </div>
+
+              <h3 style="font-size: 1.125rem; font-weight: 600; margin-bottom: 1rem;">會議排程表</h3>
+              <div style="background: #f8f8f8; padding: 1rem; border-radius: 8px; text-align: center;">
+                <p style="color: #666;">完整的排程表功能</p>
+                <p style="font-size: 0.875rem; color: #999; margin-top: 0.5rem;">
+                  這裡會顯示詳細的會議安排表格
+                </p>
+              </div>
+            </div>
+          </main>
+
+          <footer class="footer">
+            <p>&copy; 2025 新興市場領航計畫 Intelligent Meeting Scheduler</p>
+          </footer>
+        </div>
+      `;
+    }
+
+    function renderLoginModal() {
+      if (!showLoginModal) return '';
+      
+      return `
+        <div class="modal">
+          <div class="modal-content">
+            <div class="modal-header">
+              <h3 class="modal-title">管理員登入</h3>
+              <button class="modal-close" onclick="closeModal()">✕</button>
+            </div>
+            <div class="modal-body">
+              <p style="text-align: center; color: #666; margin-bottom: 1.5rem;">
+                請輸入管理員密碼以存取管理介面
+              </p>
+              
+              <input 
+                type="password" 
+                class="input" 
+                placeholder="管理員密碼"
+                value="${loginPassword}"
+                oninput="loginPassword = event.target.value"
+                onkeypress="if(event.key === 'Enter') handleLogin()"
+              />
+              
+              ${loginError ? `
+                <div style="background: #fee; border: 1px solid #fcc; border-radius: 6px; padding: 0.75rem; margin: 1rem 0;">
+                  <div style="font-size: 0.875rem; color: #c33;">${loginError}</div>
+                </div>
+              ` : ''}
+              
+              <button class="button" onclick="handleLogin()" style="width: 100%; margin-bottom: 1rem;">
+                登入管理介面
+              </button>
+              
+              <div class="text-center">
+                <span class="nav-link" onclick="closeModal(); goToSearch();">
+                  回到使用者查詢介面
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function render() {
+      const app = document.getElementById('app');
+      let content = '';
+      
+      if (currentView === 'search') {
+        content = renderSearch();
+      } else if (currentView === 'admin') {
+        content = renderAdmin();
+      }
+      
+      content += renderLoginModal();
+      app.innerHTML = content;
+    }
+
+    // Initialize app
+    document.addEventListener('DOMContentLoaded', function() {
+      render();
+    });
+  </script>
+</body>
+</html>

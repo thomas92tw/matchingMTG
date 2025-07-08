@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>智能會議調度器 - 多日期版</title>
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .draggable { cursor: grab; }
+    .dragging { opacity: 0.7; cursor: grabbing; }
+    .conflict { background-color: #fee2e2; border: 2px solid #dc2626; }
+  </style>
+</head>
+<body class="bg-gray-100">
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect, useMemo, createContext, useContext } = React;
+
+    console.log('App starting...'); // Debug log
+
+    // Constants
+    const APP_TITLE = "Intelligent Meeting Scheduler";
+    const MAX_BUYERS_PER_BLOCK = 20;
+    const NUM_PRIMARY_PREFERRED_SELLERS = 6;
+    const NUM_BACKUP_PREFERRED_SELLERS = 4;
+    const TOTAL_PREFERRED_SELLERS = NUM_PRIMARY_PREFERRED_SELLERS + NUM_BACKUP_PREFERRED_SELLERS;
+
+    const INITIAL_SESSION_SETTINGS = {
+      count: 6,
+      durationMinutes: 30,
+      breakMinutes: 5,
+      morningStartTime: "09:30",
+      afternoonStartTime: "13:30",
+    };
+
+    const generateId = () => `id_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+    // Auth Context
+    const AuthContext = createContext();
+
+    const AuthProvider = ({ children }) => {
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [currentView, setCurrentView] = useState('search');
+
+      console.log('AuthProvider rendered, currentView:', currentView); // Debug log
+
+      useEffect(() => {
+        const authStatus = sessionStorage.getItem('adminAuthenticated');
+        if (authStatus === 'true') {
+          setIsAuthenticated(true);
+        }
+      }, []);
+
+      const login = (password) => {
+        console.log('Login attempt with password:', password); // Debug log
+        if (password === 'admin123') {
+          setIsAuthenticated(true);
+          sessionStorage.setItem('adminAuthenticated', 'true');
+          setCurrentView('admin');
+          return true;
+        }
+        return false;
+      };
+
+      const logout = () => {
+        setIsAuthenticated(false);
+        sessionStorage.removeItem('adminAuthenticated');
+        setCurrentView('search');
+      };
+
+      const goToAdmin = () => {
+        if (isAuthenticated) {
+          setCurrentView('admin');
+        } else {
+          setCurrentView('login');
+        }
+      };
+
+      const goToSearch = () => {
+        setCurrentView('search');
+      };
+
+      return React.createElement(AuthContext.Provider, {
+        value: { 
+          isAuthenticated, 
+          login, 
+          logout, 
+          currentView, 
+          goToAdmin, 
+          goToSearch, 
+          setCurrentView 
+        }
+      }, children);
+    };
+
+    const useAuth = () => {
+      const context = useContext(AuthContext);
+      if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+      }
+      return context;
+    };
+
+    // Utility Functions
+    const parseTimeToMinutes = (time) => {
+      const [hours, minutes] = time.split(':').map(Number);
+      return hours * 60 + minutes;
+    };
+
+    const calculateSessions = (settings, blockType) => {
+      const sessions = [];
+      const startTimeStr = blockType === 'morning' ? settings.morningStartTime : settings.afternoonStartTime;
+      let currentTime = parseTimeToMinutes(startTimeStr);
+      const prefix = blockType === 'morning' ? 'M' : 'A';
+
+      for (let i = 0; i < settings.count; i++) {
+        const startTimeMinutes = currentTime;
+        const endTimeMinutes = currentTime + settings.durationMinutes;
+
+        const formatTime = (totalMinutes) => {
+          const hours = Math.floor(totalMinutes / 60).toString().padStart(2, '0');
+          const minutes = (totalMinutes % 60).toString().padStart(2, '0');
+          return `${hours}:${minutes}`;
+        };
+
+        sessions.push({
+          id: `${prefix}_s${i + 1}`,
+          name: `${prefix}-Session ${i + 1}`,
+          startTime: formatTime(startTimeMinutes),
+          endTime: formatTime(endTimeMinutes),
+          block: blockType,
+        });
+
+        currentTime = endTimeMinutes + settings.breakMinutes;
+      }
+      return sessions;
+    };
+
+    // Components
+    const Button = ({ children, onClick, variant = 'primary', size = 'md', className = '', disabled = false, ...props }) => {
+      const baseStyles = "rounded-md font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2";
+      const variants = {
+        primary: "bg-gray-800 text-white hover:bg-gray-700 focus:ring-gray-500",
+        secondary: "bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-500",
+        danger: "bg-red-600 text-white hover:bg-red-700 focus:ring-red-500",
+        success: "bg-yellow-400 text-black hover:bg-yellow-500 focus:ring-yellow-500"
+      };
+      const sizes = {
+        sm: "px-2 py-1 text-sm",
+        md: "px-4 py-2",
+        lg: "px-6 py-3 text-lg"
+      };
+      
+      return React.createElement('button', {
+        onClick,
+        disabled,
+        className: `${baseStyles} ${variants[variant]} ${sizes[size]} ${disabled ? 'opacity-50 cursor-not-allowed' : ''} ${className}`,
+        ...props
+      }, children);
+    };
+
+    const TextInput = ({ value, onChange, placeholder, type = 'text', className = '', label = '', ...props }) => {
+      return React.createElement('div', { className: 'w-full' }, [
+        label && React.createElement('label', { 
+          key: 'label',
+          className: 'block text-sm font-medium text-gray-700 mb-1' 
+        }, label),
+        React.createElement('input', {
+          key: 'input',
+          type,
+          value,
+          onChange,
+          placeholder,
+          className: `block w-full rounded-md border-0 py-1.5 text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-gray-600 sm:text-sm sm:leading-6 ${className}`,
+          ...props
+        })
+      ]);
+    };
+
+    // Login Component
+    const AdminLogin = () => {
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const { login, goToSearch } = useAuth();
+
+      console.log('AdminLogin rendered'); // Debug log
+
+      const handleSubmit = (e) => {
+        e.preventDefault();
+        setError('');
+        
+        if (login(password)) {
+          console.log('Login successful'); // Debug log
+        } else {
+          setError('密碼錯誤，請重試');
+          setPassword('');
+        }
+      };
+
+      return React.createElement('div', {
+        className: 'min-h-screen bg-gray-100 flex items-center justify-center py-12 px-4'
+      }, [
+        React.createElement('div', {
+          key: 'container',
+          className: 'max-w-md w-full space-y-8'
+        }, [
+          React.createElement('div', { key: 'header' }, [
+            React.createElement('h2', {
+              key: 'title',
+              className: 'mt-6 text-center text-3xl font-extrabold text-gray-900'
+            }, '管理員登入'),
+            React.createElement('p', {
+              key: 'subtitle',
+              className: 'mt-2 text-center text-sm text-gray-600'
+            }, '請輸入管理員密碼以存取管理介面')
+          ]),
+          React.createElement('form', {
+            key: 'form',
+            className: 'mt-8 space-y-6',
+            onSubmit: handleSubmit
+          }, [
+            React.createElement('div', { key: 'input-container' }, [
+              React.createElement(TextInput, {
+                key: 'password-input',
+                type: 'password',
+                value: password,
+                onChange: (e) => setPassword(e.target.value),
+                placeholder: '管理員密碼',
+                required: true
+              })
+            ]),
+            error && React.createElement('div', {
+              key: 'error',
+              className: 'rounded-md bg-red-50 p-4'
+            }, [
+              React.createElement('div', {
+                key: 'error-text',
+                className: 'text-sm text-red-700'
+              }, error)
+            ]),
+            React.createElement('div', { key: 'submit-container' }, [
+              React.createElement(Button, {
+                key: 'submit-btn',
+                type: 'submit',
+                className: 'w-full'
+              }, '登入管理介面')
+            ]),
+            React.createElement('div', {
+              key: 'back-link',
+              className: 'text-center'
+            }, [
+              React.createElement('button', {
+                key: 'back-btn',
+                type: 'button',
+                onClick: goToSearch,
+                className: 'text-sm text-gray-600 hover:text-gray-900 underline'
+              }, '回到使用者查詢介面')
+            ])
+          ])
+        ])
+      ]);
+    };
+
+    // Search Page Component
+    const UserSearchPage = () => {
+      const [searchTerm, setSearchTerm] = useState('');
+      const [suggestions, setSuggestions] = useState([]);
+      const [showSuggestions, setShowSuggestions] = useState(false);
+      const { goToAdmin } = useAuth();
+
+      console.log('UserSearchPage rendered'); // Debug log
+
+      // Get data from localStorage
+      const getMasterSellers = () => {
+        try {
+          const stored = localStorage.getItem('master-sellers');
+          return stored ? JSON.parse(stored) : [
+            { id: '1', name: '台灣科技A' },
+            { id: '2', name: '台灣製造B' },
+            { id: '3', name: '創新企業C' },
+            { id: '4', name: '精密工業D' },
+            { id: '5', name: '綠能科技E' }
+          ];
+        } catch (e) {
+          console.error('Error loading sellers:', e);
+          return [];
+        }
+      };
+
+      const getEvents = () => {
+        try {
+          const stored = localStorage.getItem('matching-events');
+          return stored ? JSON.parse(stored) : [
+            {
+              id: '1',
+              name: '台北國際媒合會',
+              date: '2025-07-15',
+              participants: {
+                buyers: [
+                  { id: 'b1', name: '菲律賓科技公司', country: '菲律賓', sessionBlock: 'morning' },
+                  { id: 'b2', name: '泰國製造企業', country: '泰國', sessionBlock: 'morning' }
+                ],
+                sellers: [
+                  { id: '1', name: '台灣科技A' },
+                  { id: '2', name: '台灣製造B' }
+                ]
+              },
+              schedule: {
+                'b1': { 'M_s1': '1', 'M_s2': '2' },
+                'b2': { 'M_s1': '2', 'M_s2': '1' }
+              },
+              sessionSettings: INITIAL_SESSION_SETTINGS
+            }
+          ];
+        } catch (e) {
+          console.error('Error loading events:', e);
+          return [];
+        }
+      };
+
+      const masterSellers = getMasterSellers();
+      const events = getEvents();
+
+      const handleSearchChange = (e) => {
+        const value = e.target.value;
+        setSearchTerm(value);
+        
+        if (value.trim()) {
+          const filtered = masterSellers.filter(seller =>
+            seller.name.toLowerCase().includes(value.toLowerCase())
+          );
+          setSuggestions(filtered);
+          setShowSuggestions(true);
+        } else {
+          setSuggestions([]);
+          setShowSuggestions(false);
+        }
+      };
+
+      const selectSeller = (seller) => {
+        setSearchTerm(seller.name);
+        setShowSuggestions(false);
+      };
+
+      const getSellerMeetings = () => {
+        const selectedSeller = masterSellers.find(s => s.name === searchTerm);
+        if (!selectedSeller) return [];
+
+        const meetings = [];
+        
+        events.forEach(event => {
+          const eventSellers = event.participants.sellers || [];
+          if (!eventSellers.some(s => s.id === selectedSeller.id)) return;
+
+          const eventBuyers = event.participants.buyers || [];
+          const schedule = event.schedule || {};
+          const sessionSettings = event.sessionSettings;
+          
+          // Calculate sessions for this event
+          const morningSessions = calculateSessions(sessionSettings, 'morning');
+          const afternoonSessions = calculateSessions(sessionSettings, 'afternoon');
+          const allSessions = [...morningSessions, ...afternoonSessions];
+
+          Object.entries(schedule).forEach(([buyerId, sessions]) => {
+            Object.entries(sessions).forEach(([sessionId, sellerId]) => {
+              if (sellerId === selectedSeller.id) {
+                const buyer = eventBuyers.find(b => b.id === buyerId);
+                const session = allSessions.find(s => s.id === sessionId);
+                if (buyer && session) {
+                  meetings.push({ 
+                    event, 
+                    buyer, 
+                    session 
+                  });
+                }
+              }
+            });
+          });
+        });
+
+        return meetings.sort((a, b) => {
+          const dateA = new Date(a.event.date);
+          const dateB = new Date(b.event.date);
+          if (dateA.getTime() !== dateB.getTime()) {
+            return dateA - dateB;
+          }
+          if (a.session.block !== b.session.block) {
+            return a.session.block === 'morning' ? -1 : 1;
+          }
+          return a.session.startTime.localeCompare(b.session.startTime);
+        });
+      };
+
+      const meetings = getSellerMeetings();
+
+      const formatDate = (dateStr) => {
+        const date = new Date(dateStr);
+        return date.toLocaleDateString('zh-TW', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+          weekday: 'long'
+        });
+      };
+
+      return React.createElement('div', {
+        className: 'min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4'
+      }, [
+        React.createElement('header', {
+          key: 'header',
+          className: 'mb-8 text-center'
+        }, [
+          React.createElement('h1', {
+            key: 'title',
+            className: 'text-5xl font-extrabold text-gray-800'
+          }, APP_TITLE),
+          React.createElement('p', {
+            key: 'subtitle',
+            className: 'mt-2 text-gray-600'
+          }, '賣家會議時間查詢系統'),
+          React.createElement('div', {
+            key: 'nav',
+            className: 'mt-4'
+          }, [
+            React.createElement('button', {
+              key: 'admin-link',
+              onClick: goToAdmin,
+              className: 'text-sm text-gray-600 hover:text-gray-900 underline'
+            }, '管理員入口')
+          ])
+        ]),
+        React.createElement('main', {
+          key: 'main',
+          className: 'w-full max-w-4xl'
+        }, [
+          React.createElement('div', {
+            key: 'search-card',
+            className: 'bg-white rounded-lg shadow-lg p-6'
+          }, [
+            React.createElement('h2', {
+              key: 'card-title',
+              className: 'text-2xl font-bold text-gray-800 mb-6'
+            }, '賣家會議查詢'),
+            React.createElement('div', {
+              key: 'search-container',
+              className: 'relative mb-6'
+            }, [
+              React.createElement(TextInput, {
+                key: 'search-input',
+                value: searchTerm,
+                onChange: handleSearchChange,
+                placeholder: '請輸入賣家姓名進行搜尋...',
+                className: 'text-lg py-3'
+              }),
+              showSuggestions && suggestions.length > 0 && React.createElement('div', {
+                key: 'suggestions',
+                className: 'absolute top-full left-0 right-0 bg-white border border-gray-300 rounded-md shadow-lg z-10 mt-1'
+              }, suggestions.map(seller => 
+                React.createElement('button', {
+                  key: seller.id,
+                  onClick: () => selectSeller(seller),
+                  className: 'w-full text-left px-4 py-2 hover:bg-gray-100 focus:bg-gray-100'
+                }, seller.name)
+              ))
+            ]),
+            meetings.length > 0 ? React.createElement('div', {
+              key: 'meetings'
+            }, [
+              React.createElement('h3', {
+                key: 'meetings-title',
+                className: 'text-lg font-semibold mb-4'
+              }, `${searchTerm} 的會議安排`),
+              React.createElement('div', {
+                key: 'meetings-list',
+                className: 'space-y-4'
+              }, meetings.map((meeting, index) => 
+                React.createElement('div', {
+                  key: index,
+                  className: 'border border-gray-200 rounded-lg p-4 bg-gray-50'
+                }, [
+                  React.createElement('div', {
+                    key: 'meeting-content',
+                    className: 'flex justify-between items-start'
+                  }, [
+                    React.createElement('div', {
+                      key: 'meeting-info',
+                      className: 'flex-1'
+                    }, [
+                      React.createElement('div', {
+                        key: 'meeting-header',
+                        className: 'flex items-center gap-4 mb-2'
+                      }, [
+                        React.createElement('h4', {
+                          key: 'event-name',
+                          className: 'font-medium text-yellow-600 text-lg'
+                        }, `📅 ${meeting.event.name}`),
+                        React.createElement('span', {
+                          key: 'date',
+                          className: 'text-sm text-gray-500'
+                        }, formatDate(meeting.event.date))
+                      ]),
+                      React.createElement('div', {
+                        key: 'meeting-details',
+                        className: 'grid grid-cols-1 md:grid-cols-2 gap-4'
+                      }, [
+                        React.createElement('div', { key: 'time-info' }, [
+                          React.createElement('p', {
+                            key: 'time',
+                            className: 'text-sm text-gray-600'
+                          }, `時間：${meeting.session.startTime} - ${meeting.session.endTime}`),
+                          React.createElement('p', {
+                            key: 'block',
+                            className: 'text-sm text-gray-600'
+                          }, `時段：${meeting.session.block === 'morning' ? '上午場' : '下午場'}`),
+                          React.createElement('p', {
+                            key: 'session',
+                            className: 'text-sm text-gray-600'
+                          }, `場次：${meeting.session.name}`)
+                        ]),
+                        React.createElement('div', { key: 'buyer-info' }, [
+                          React.createElement('p', {
+                            key: 'buyer',
+                            className: 'text-sm text-gray-600'
+                          }, `買家：${meeting.buyer.name}`),
+                          React.createElement('p', {
+                            key: 'country',
+                            className: 'text-sm text-gray-600'
+                          }, `國家：${meeting.buyer.country}`)
+                        ])
+                      ])
+                    ])
+                  ])
+                ])
+              ))
+            ]) : searchTerm ? React.createElement('div', {
+              key: 'no-results',
+              className: 'text-center py-8'
+            }, [
+              React.createElement('p', {
+                key: 'no-results-text',
+                className: 'text-gray-500'
+              }, '未找到相關會議安排'),
+              React.createElement('p', {
+                key: 'no-results-subtext',
+                className: 'text-sm text-gray-400 mt-2'
+              }, '該賣家可能未參與任何媒合活動')
+            ]) : React.createElement('div', {
+              key: 'search-prompt',
+              className: 'text-center py-8'
+            }, [
+              React.createElement('p', {
+                key: 'prompt-text',
+                className: 'text-gray-500'
+              }, '請輸入賣家姓名開始搜尋'),
+              React.createElement('p', {
+                key: 'prompt-subtext',
+                className: 'text-sm text-gray-400 mt-2'
+              }, `可搜尋的賣家：${masterSellers.slice(0, 5).map(s => s.name).join('、')}${masterSellers.length > 5 ? ` 等 ${masterSellers.length} 位賣家` : ''}`)
+            ])
+          ])
+        ]),
+        React.createElement('footer', {
+          key: 'footer',
+          className: 'mt-12 text-center text-gray-500 text-sm'
+        }, [
+          React.createElement('p', {
+            key: 'copyright'
+          }, '© 2025 新興市場領航計畫 Intelligent Meeting Scheduler')
+        ])
+      ]);
+    };
+
+    // Simple Admin Panel
+    const AdminPanel = () => {
+      const { logout, goToSearch } = useAuth();
+
+      console.log('AdminPanel rendered'); // Debug log
+
+      return React.createElement('div', {
+        className: 'min-h-screen bg-gray-100 flex flex-col items-center py-8 px-4'
+      }, [
+        React.createElement('header', {
+          key: 'header',
+          className: 'mb-8 text-center w-full max-w-7xl'
+        }, [
+          React.createElement('div', {
+            key: 'header-content',
+            className: 'flex justify-between items-center mb-6'
+          }, [
+            React.createElement('h1', {
+              key: 'title',
+              className: 'text-4xl font-extrabold text-gray-800 flex-1'
+            }, `${APP_TITLE} - 管理員介面`),
+            React.createElement(Button, {
+              key: 'logout-btn',
+              onClick: logout,
+              variant: 'secondary'
+            }, '登出')
+          ]),
+          React.createElement('div', {
+            key: 'nav',
+            className: 'text-center'
+          }, [
+            React.createElement('button', {
+              key: 'search-link',
+              onClick: goToSearch,
+              className: 'text-sm text-gray-600 hover:text-gray-900 underline'
+            }, '前往使用者查詢介面')
+          ])
+        ]),
+        React.createElement('main', {
+          key: 'main',
+          className: 'w-full max-w-7xl space-y-6'
+        }, [
+          React.createElement('div', {
+            key: 'admin-card',
+            className: 'bg-white rounded-lg shadow-lg p-6'
+          }, [
+            React.createElement('h2', {
+              key: 'card-title',
+              className: 'text-2xl font-bold text-gray-800 mb-6'
+            }, '管理控制台'),
+            React.createElement('div', {
+              key: 'stats',
+              className: 'grid grid-cols-1 md:grid-cols-2 gap-6 mb-6'
+            }, [
+              React.createElement('div', {
+                key: 'buyers-stat',
+                className: 'bg-yellow-50 p-4 rounded-lg'
+              }, [
+                React.createElement('h3', {
+                  key: 'buyers-title',
+                  className: 'font-semibold text-yellow-800'
+                }, '買家主資料庫'),
+                React.createElement('p', {
+                  key: 'buyers-count',
+                  className: 'text-2xl font-bold text-yellow-600'
+                }, '15 位'),
+                React.createElement('div', {
+                  key: 'buyers-breakdown',
+                  className: 'text-sm text-yellow-600 mt-2'
+                }, '🇵🇭 菲律賓: 3 | 🇹🇭 泰國: 2 | 🇲🇾 馬來西亞: 2')
+              ]),
+              React.createElement('div', {
+                key: 'sellers-stat',
+                className: 'bg-yellow-50 p-4 rounded-lg'
+              }, [
+                React.createElement('h3', {
+                  key: 'sellers-title',
+                  className: 'font-semibold text-yellow-800'
+                }, '賣家主資料庫 🇹🇼'),
+                React.createElement('p', {
+                  key: 'sellers-count',
+                  className: 'text-2xl font-bold text-yellow-600'
+                }, '20 位'),
+                React.createElement('p', {
+                  key: 'sellers-desc',
+                  className: 'text-sm text-yellow-600'
+                }, '台灣賣家')
+              ])
+            ]),
+            React.createElement('div', {
+              key: 'actions',
+              className: 'flex gap-3'
+            }, [
+              React.createElement(Button, {
+                key: 'create-event',
+                variant: 'success'
+              }, '➕ 創建媒合活動'),
+              React.createElement(Button, {
+                key: 'manage-buyers',
+                variant: 'primary'
+              }, '管理買家'),
+              React.createElement(Button, {
+                key: 'manage-sellers',
+                variant: 'primary'
+              }, '管理賣家')
+            ])
+          ]),
+          React.createElement('div', {
+            key: 'events-card',
+            className: 'bg-white rounded-lg shadow-lg p-6'
+          }, [
+            React.createElement('h2', {
+              key: 'events-title',
+              className: 'text-xl font-bold text-gray-800 mb-4'
+            }, '媒合活動管理'),
+            React.createElement('div', {
+              key: 'events-grid',
+              className: 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'
+            }, [
+              React.createElement('div', {
+                key: 'event-1',
+                className: 'border-2 border-yellow-500 bg-yellow-50 rounded-lg p-4'
+              }, [
+                React.createElement('h3', {
+                  key: 'event-name',
+                  className: 'font-semibold text-gray-800'
+                }, '台北國際媒合會'),
+                React.createElement('p', {
+                  key: 'event-date',
+                  className: 'text-sm text-gray-600 mb-3'
+                }, '2025年7月15日 星期二'),
+                React.createElement('div', {
+                  key: 'event-stats',
+                  className: 'text-xs text-gray-500 space-y-1'
+                }, [
+                  React.createElement('div', {
+                    key: 'buyers-count',
+                    className: 'flex justify-between'
+                  }, [
+                    React.createElement('span', { key: 'label' }, '買家:'),
+                    React.createElement('span', { key: 'value' }, '12 位')
+                  ]),
+                  React.createElement('div', {
+                    key: 'sellers-count',
+                    className: 'flex justify-between'
+                  }, [
+                    React.createElement('span', { key: 'label' }, '賣家:'),
+                    React.createElement('span', { key: 'value' }, '8 位')
+                  ]),
+                  React.createElement('div', {
+                    key: 'schedule-status',
+                    className: 'flex justify-between'
+                  }, [
+                    React.createElement('span', { key: 'label' }, '排程:'),
+                    React.createElement('span', { key: 'value' }, '已完成')
+                  ])
+                ])
+              ])
+            ])
+          ])
+        ]),
+        React.createElement('footer', {
+          key: 'footer',
+          className: 'mt-12 text-center text-gray-500 text-sm'
+        }, [
+          React.createElement('p', {
+            key: 'copyright'
+          }, '© 2025 新興市場領航計畫 Intelligent Meeting Scheduler')
+        ])
+      ]);
+    };
+
+    // Main App Component
+    const App = () => {
+      const { currentView } = useAuth();
+
+      console.log('App rendered, currentView:', currentView); // Debug log
+
+      const renderView = () => {
+        switch (currentView) {
+          case 'admin':
+            return React.createElement(AdminPanel);
+          case 'login':
+            return React.createElement(AdminLogin);
+          case 'search':
+          default:
+            return React.createElement(UserSearchPage);
+        }
+      };
+
+      return React.createElement('div', {}, renderView());
+    };
+
+    // Main component
+    const AppWithProvider = () => {
+      console.log('AppWithProvider rendered'); // Debug log
+      return React.createElement(AuthProvider, {}, React.createElement(App));
+    };
+
+    // Initialize app
+    console.log('Initializing React app...'); // Debug log
+    const container = document.getElementById('root');
+    if (container) {
+      const root = ReactDOM.createRoot(container);
+      root.render(React.createElement(AppWithProvider));
+      console.log('React app initialized successfully'); // Debug log
+    } else {
+      console.error('Root container not found');
+    }
+  </script>
+</body>
+</html>

@@ -1814,14 +1814,27 @@
       const uniquePrefs = new Set(filledPrefs);
       
       if (uniquePrefs.size !== filledPrefs.length) {
-        alert("Preferred sellers cannot be duplicated");
+        // Find duplicates for detailed error message
+        const duplicates = [];
+        const seen = new Set();
+        filledPrefs.forEach(pref => {
+          if (seen.has(pref)) {
+            const seller = masterSellers.find(s => s.id === pref);
+            if (seller && !duplicates.includes(seller.name)) {
+              duplicates.push(seller.name);
+            }
+          }
+          seen.add(pref);
+        });
+        
+        alert(`⚠️ Duplicate sellers detected!\n\nDuplicated sellers: ${duplicates.join(', ')}\n\nEach seller can only appear once in the preference list.\nPlease remove duplicates before saving.`);
         return;
       }
 
       buyerPreferences[selectedBuyerForPref] = [...currentPreferences];
       showPreferenceModal = false;
       saveData();
-      alert('Preference settings saved successfully!');
+      alert('✅ Preference settings saved successfully!');
       render();
     };
 
@@ -3102,6 +3115,16 @@
     };
 
     window.updatePreference = (index, value) => {
+      // Check for duplicates before updating
+      if (value !== '') {
+        const otherPrefs = currentPreferences.filter((pref, i) => i !== index && pref !== '');
+        if (otherPrefs.includes(value)) {
+          const seller = masterSellers.find(s => s.id === value);
+          alert(`⚠️ Duplicate selection detected!\n\nSeller "${seller ? seller.name : 'Unknown'}" is already selected in another preference slot.\n\nPlease choose a different seller.`);
+          return;
+        }
+      }
+      
       currentPreferences[index] = value;
       render();
     };
